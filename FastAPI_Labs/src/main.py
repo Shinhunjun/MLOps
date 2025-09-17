@@ -129,23 +129,9 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
             )
             
             if result.returncode == 0:
-                # 트리거 성공 후 로컬 데이터 파일만 삭제 (충돌 방지)
-                try:
-                    import os
-                    import glob
-                    
-                    # 폴더는 유지하고 파일만 삭제
-                    for file_path in glob.glob(os.path.join(save_dir, "*")):
-                        if os.path.isfile(file_path):
-                            os.remove(file_path)
-                    
-                    print("🗑️ 로컬 new_data 파일들이 삭제되었습니다. (충돌 방지)")
-                except Exception as e:
-                    print(f"⚠️ 로컬 데이터 삭제 실패: {e}")
-                
                 return {
                     "status": "success",
-                    "message": f"피드백이 저장되었습니다. ({data_count}개) 재훈련이 자동으로 트리거되었습니다! 로컬 데이터가 삭제되어 충돌을 방지합니다.",
+                    "message": f"피드백이 저장되었습니다. ({data_count}개) 재훈련이 자동으로 트리거되었습니다! GitHub Actions에서 학습이 진행됩니다.",
                     "data_count": data_count,
                     "triggered": True
                 }
