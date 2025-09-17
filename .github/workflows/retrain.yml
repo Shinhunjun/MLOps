@@ -1,0 +1,80 @@
+name: Model Retraining with Webhook
+
+on:
+  workflow_dispatch: # Allows manual triggering
+    inputs:
+      trigger_reason:
+        description: "Reason for triggering retraining"
+        required: false
+        default: "Manual trigger"
+      data_count:
+        description: "Number of data points collected"
+        required: false
+        default: "0"
+      timestamp:
+        description: "Timestamp of trigger"
+        required: false
+        default: "N/A"
+  repository_dispatch: # Allows webhook triggering
+    types: [retrain-model]
+  schedule:
+    - cron: "0 8 * * *" # Runs every day at 8:00 AM UTC
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11" # Based on the user's venv
+
+      - name: Install dependencies
+        run: pip install -r FastAPI_Labs/requirements.txt
+
+      - name: Check for new data
+        id: check_data
+        run: |
+          if [ -d "FastAPI_Labs/new_data" ] && [ "$(ls -A FastAPI_Labs/new_data)" ]; then
+            echo "data_exists=true" >> $GITHUB_OUTPUT
+            echo "data_count=$(ls FastAPI_Labs/new_data/*.png FastAPI_Labs/new_data/*.jpg 2>/dev/null | wc -l)" >> $GITHUB_OUTPUT
+          else
+            echo "data_exists=false" >> $GITHUB_OUTPUT
+            echo "data_count=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download additional data (if needed)
+        if: steps.check_data.outputs.data_exists == 'true'
+        run: |
+          echo "📊 Found ${{ steps.check_data.outputs.data_count }} new data points"
+          echo "🔄 Starting model retraining with new data..."
+
+      - name: Run model retraining
+        if: steps.check_data.outputs.data_exists == 'true'
+        run: |
+          cd FastAPI_Labs
+          python src/retrain_with_new_data.py
+
+      - name: Commit and push changes
+        if: steps.check_data.outputs.data_exists == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -A # Stage all changes, including new archived data and the updated model
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "feat(mlops): Automatically retrain models with new data"
+            git push
+          fi
+
+      - name: Notify FastAPI server to reload models
+        if: steps.check_data.outputs.data_exists == 'true'
+        run: |
+          echo "🔄 FastAPI 서버에 모델 리로드 요청을 보내는 중..."
+          # FastAPI 서버의 reload-models 엔드포인트 호출
+          curl -X POST "http://localhost:8000/reload-models" || echo "⚠️ FastAPI 서버에 연결할 수 없습니다. 수동으로 서버를 재시작해주세요."

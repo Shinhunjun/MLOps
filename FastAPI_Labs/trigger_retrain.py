@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+"""
+데이터가 100개 모이면 GitHub Actions를 트리거하는 스크립트
+"""
+import os
+import json
+import requests
+import glob
+from datetime import datetime
+from dotenv import load_dotenv
+
+# .env 파일 로드
+load_dotenv()
+
+def count_new_data():
+    """new_data 폴더의 파일 개수를 세어 반환"""
+    data_dir = "new_data"
+    if not os.path.exists(data_dir):
+        return 0
+    
+    # 이미지 파일들만 카운트
+    image_files = glob.glob(os.path.join(data_dir, "*.png"))
+    image_files.extend(glob.glob(os.path.join(data_dir, "*.jpg")))
+    image_files.extend(glob.glob(os.path.join(data_dir, "*.jpeg")))
+    
+    return len(image_files)
+
+def trigger_github_action():
+    """GitHub repository dispatch를 통해 워크플로우 트리거"""
+    # GitHub Personal Access Token이 필요합니다
+    # Settings > Developer settings > Personal access tokens > Generate new token
+    # 권한: repo, workflow
+    
+    token = os.getenv('GITHUB_TOKEN')
+    if not token:
+        print("❌ GITHUB_TOKEN 환경변수가 설정되지 않았습니다.")
+        print("GitHub Personal Access Token을 설정해주세요:")
+        print("export GITHUB_TOKEN='your_token_here'")
+        return False
+    
+    # GitHub API를 통해 repository dispatch 트리거
+    url = "https://api.github.com/repos/{owner}/{repo}/dispatches"
+    
+    # .env 파일에서 GitHub 정보 로드
+    owner = os.getenv('GITHUB_OWNER', 'hunjunsin')
+    repo = os.getenv('GITHUB_REPO', 'MLOps')
+    
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    
+    data = {
+        "event_type": "retrain-model",
+        "client_payload": {
+            "trigger_reason": "Data collection threshold reached",
+            "data_count": str(count_new_data()),
+            "timestamp": datetime.now().isoformat()
+        }
+    }
+    
+    try:
+        response = requests.post(url.format(owner=owner, repo=repo), 
+                               headers=headers, 
+                               json=data)
+        
+        if response.status_code == 204:
+            print("✅ GitHub Actions 워크플로우가 성공적으로 트리거되었습니다!")
+            return True
+        else:
+            print(f"❌ 워크플로우 트리거 실패: {response.status_code}")
+            print(f"응답: {response.text}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ 오류 발생: {e}")
+        return False
+
+def main():
+    """메인 함수"""
+    print("🔍 새로운 데이터 개수 확인 중...")
+    
+    data_count = count_new_data()
+    print(f"📊 현재 new_data 폴더의 파일 개수: {data_count}")
+    
+    if data_count >= 100:
+        print("🎯 100개 이상의 데이터가 수집되었습니다!")
+        print("🚀 GitHub Actions 워크플로우를 트리거합니다...")
+        
+        if trigger_github_action():
+            print("✅ 재훈련 프로세스가 시작되었습니다.")
+            print("GitHub Actions 탭에서 진행상황을 확인할 수 있습니다.")
+        else:
+            print("❌ 워크플로우 트리거에 실패했습니다.")
+    else:
+        print(f"⏳ 아직 {100 - data_count}개 더 필요합니다.")
+        print("더 많은 데이터를 수집한 후 다시 실행해주세요.")
+
+if __name__ == "__main__":
+    main()

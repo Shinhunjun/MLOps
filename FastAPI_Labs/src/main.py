@@ -1,7 +1,7 @@
 from fastapi import FastAPI, status, HTTPException
 from pydantic import BaseModel
 import numpy as np
-from predict import predict_data, predict_with_confidence, predict_with_cnn
+from predict import predict_data, predict_with_confidence, predict_with_cnn, reload_models
 
 
 app = FastAPI()
@@ -92,7 +92,15 @@ async def predict_mnist_cnn(mnist_data: MNISTData):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+@app.post("/reload-models")
+async def reload_models_endpoint():
+    """모델을 다시 로드하는 엔드포인트 (GitHub Actions에서 호출)"""
+    try:
+        reload_models()
+        return {"status": "success", "message": "모델이 성공적으로 다시 로드되었습니다."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"모델 리로드 실패: {str(e)}")
 
 
     

@@ -27,6 +27,20 @@ def load_models():
             print(f"XGBoost 모델 로드 실패: {e}")
             _xgb_model = None
 
+def reload_models():
+    """모델들을 강제로 다시 로드합니다."""
+    global _cnn_model, _xgb_model
+    
+    print("🔄 모델을 다시 로드하는 중...")
+    
+    # 기존 모델 초기화
+    _cnn_model = None
+    _xgb_model = None
+    
+    # 모델 다시 로드
+    load_models()
+    print("✅ 모델 리로드 완료!")
+
 def predict_data(X):
     """
     XGBoost 모델로 예측합니다.
