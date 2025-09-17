@@ -72,9 +72,8 @@ jobs:
             git push
           fi
 
-      - name: Notify FastAPI server to reload models
+      - name: Notify completion
         if: steps.check_data.outputs.data_exists == 'true'
         run: |
-          echo "🔄 FastAPI 서버에 모델 리로드 요청을 보내는 중..."
-          # FastAPI 서버의 reload-models 엔드포인트 호출
-          curl -X POST "http://localhost:8000/reload-models" || echo "⚠️ FastAPI 서버에 연결할 수 없습니다. 수동으로 서버를 재시작해주세요."
+          echo "✅ 모델 재훈련이 완료되었습니다!"
+          echo "📝 로컬에서 FastAPI 서버를 재시작하여 새로운 모델을 로드하세요."

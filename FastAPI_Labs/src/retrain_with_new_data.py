@@ -15,7 +15,7 @@ import time
 
 def load_new_data():
     """new_data 폴더에서 새로운 데이터를 로드"""
-    data_dir = "../new_data"
+    data_dir = "new_data"
     if not os.path.exists(data_dir):
         print("❌ new_data 폴더가 존재하지 않습니다.")
         return None, None
@@ -84,7 +84,7 @@ def retrain_cnn(X_original, y_original, X_new, y_new):
     
     # CNN 모델 로드 (기존 모델)
     try:
-        cnn_model = models.load_model("../model/cnn_mnist_model.h5")
+        cnn_model = models.load_model("model/cnn_mnist_model.h5")
         print("✅ 기존 CNN 모델을 로드했습니다.")
     except:
         print("⚠️ 기존 CNN 모델을 찾을 수 없습니다. 새로 생성합니다.")
@@ -120,15 +120,15 @@ def retrain_cnn(X_original, y_original, X_new, y_new):
     print(f"✅ CNN 재훈련 완료! 정확도: {test_accuracy:.4f}, 시간: {training_time:.2f}초")
     
     # 모델 저장
-    cnn_model.save("../model/cnn_mnist_model.h5")
+    cnn_model.save("model/cnn_mnist_model.h5")
     print("💾 CNN 모델이 저장되었습니다.")
     
     return cnn_model
 
 def archive_used_data():
     """사용된 데이터를 아카이브 폴더로 이동"""
-    data_dir = "../new_data"
-    archive_dir = "../archived_data"
+    data_dir = "new_data"
+    archive_dir = "archived_data"
     
     os.makedirs(archive_dir, exist_ok=True)
     
