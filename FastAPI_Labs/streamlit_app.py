@@ -235,20 +235,30 @@ if st.session_state.prediction is not None:
 
             if col_feedback_1.button(f"👍 네, '{prediction}'이 맞습니다."):
                 try:
-                    save_dir = "/Users/hunjunsin/Desktop/Jun/MLOps/FastAPI_Labs/new_data"
-                    os.makedirs(save_dir, exist_ok=True)
-                    timestamp = int(time.time() * 1000)
-                    filename = f"{prediction}_{timestamp}.png"
-                    file_path = os.path.join(save_dir, filename)
+                    # FastAPI에 피드백 데이터 전송
+                    feedback_data = {
+                        "pixels": pixels,
+                        "label": prediction
+                    }
                     
-                    # Reconstruct and save the processed image
-                    image_array = np.array(pixels).reshape(28, 28)
-                    image_array = (image_array * 255).astype(np.uint8)
-                    processed_image = Image.fromarray(image_array, 'L')
-                    processed_image.save(file_path)
-
-                    st.session_state.feedback_submitted = True
-                    st.rerun()
+                    response = requests.post(
+                        "http://localhost:8000/save-feedback",
+                        json=feedback_data,
+                        timeout=30
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        st.success(result["message"])
+                        
+                        if result.get("triggered"):
+                            st.info("🚀 GitHub Actions에서 모델 재훈련이 진행됩니다!")
+                        
+                        st.session_state.feedback_submitted = True
+                        st.rerun()
+                    else:
+                        st.error(f"피드백 저장 실패: {response.status_code}")
+                        
                 except Exception as e:
                     st.error(f"피드백 저장 중 오류 발생: {e}")
 
@@ -262,24 +272,31 @@ if st.session_state.prediction is not None:
             if st.button("피드백 제출"):
                 if correct_label.isdigit() and 0 <= int(correct_label) <= 9:
                     try:
-                        save_dir = "/Users/hunjunsin/Desktop/Jun/MLOps/FastAPI_Labs/new_data"
-                        os.makedirs(save_dir, exist_ok=True)
-                        timestamp = int(time.time() * 1000)
-                        filename = f"{correct_label}_{timestamp}.png"
-                        file_path = os.path.join(save_dir, filename)
+                        # FastAPI에 피드백 데이터 전송
+                        feedback_data = {
+                            "pixels": pixels,
+                            "label": int(correct_label)
+                        }
                         
-                        # Reconstruct and save the processed image
-                        image_array = np.array(pixels).reshape(28, 28)
-                        image_array = (image_array * 255).astype(np.uint8)
-                        processed_image = Image.fromarray(image_array, 'L')
-                        processed_image.save(file_path)
-
-                        # 자동 트리거 체크
-                        check_and_trigger_retrain()
+                        response = requests.post(
+                            "http://localhost:8000/save-feedback",
+                            json=feedback_data,
+                            timeout=30
+                        )
                         
-                        st.session_state.feedback_submitted = True
-                        st.session_state.feedback_mode = False
-                        st.rerun()
+                        if response.status_code == 200:
+                            result = response.json()
+                            st.success(result["message"])
+                            
+                            if result.get("triggered"):
+                                st.info("🚀 GitHub Actions에서 모델 재훈련이 진행됩니다!")
+                            
+                            st.session_state.feedback_submitted = True
+                            st.session_state.feedback_mode = False
+                            st.rerun()
+                        else:
+                            st.error(f"피드백 저장 실패: {response.status_code}")
+                            
                     except Exception as e:
                         st.error(f"피드백 저장 중 오류 발생: {e}")
                 else:
