@@ -60,6 +60,8 @@ jobs:
 
       - name: Commit and push changes
         if: steps.check_data.outputs.data_exists == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
@@ -69,7 +71,7 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "feat(mlops): Automatically retrain models with new data"
-            git push
+            git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           fi
 
       - name: Notify completion
