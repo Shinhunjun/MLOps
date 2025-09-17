@@ -129,11 +129,17 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
             )
             
             if result.returncode == 0:
-                # 트리거 성공 후 로컬 데이터 삭제 (충돌 방지)
+                # 트리거 성공 후 로컬 데이터 파일만 삭제 (충돌 방지)
                 try:
-                    import shutil
-                    shutil.rmtree(save_dir)
-                    print("🗑️ 로컬 new_data 폴더가 삭제되었습니다. (충돌 방지)")
+                    import os
+                    import glob
+                    
+                    # 폴더는 유지하고 파일만 삭제
+                    for file_path in glob.glob(os.path.join(save_dir, "*")):
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                    
+                    print("🗑️ 로컬 new_data 파일들이 삭제되었습니다. (충돌 방지)")
                 except Exception as e:
                     print(f"⚠️ 로컬 데이터 삭제 실패: {e}")
                 
