@@ -129,9 +129,17 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
             )
             
             if result.returncode == 0:
+                # 트리거 성공 후 로컬 데이터 삭제 (충돌 방지)
+                try:
+                    import shutil
+                    shutil.rmtree(save_dir)
+                    print("🗑️ 로컬 new_data 폴더가 삭제되었습니다. (충돌 방지)")
+                except Exception as e:
+                    print(f"⚠️ 로컬 데이터 삭제 실패: {e}")
+                
                 return {
                     "status": "success",
-                    "message": f"피드백이 저장되었습니다. ({data_count}개) 재훈련이 자동으로 트리거되었습니다!",
+                    "message": f"피드백이 저장되었습니다. ({data_count}개) 재훈련이 자동으로 트리거되었습니다! 로컬 데이터가 삭제되어 충돌을 방지합니다.",
                     "data_count": data_count,
                     "triggered": True
                 }

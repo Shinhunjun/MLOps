@@ -41,6 +41,13 @@ def reload_models():
         
         if result.returncode == 0:
             print("✅ Git pull 완료! (archived_data 포함)")
+            
+            # new_data 폴더가 비어있는지 확인 (GitHub Actions 완료 후)
+            new_data_path = os.path.join(repo_root, "FastAPI_Labs", "new_data")
+            if os.path.exists(new_data_path) and not os.listdir(new_data_path):
+                print("📁 new_data 폴더가 비어있습니다. (GitHub Actions 완료)")
+            elif os.path.exists(new_data_path):
+                print(f"📁 new_data 폴더에 {len(os.listdir(new_data_path))}개 파일이 있습니다.")
         else:
             print(f"⚠️ Git pull 실패: {result.stderr}")
             
