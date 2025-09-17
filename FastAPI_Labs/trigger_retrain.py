@@ -13,17 +13,36 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def count_new_data():
-    """new_data 폴더의 파일 개수를 세어 반환"""
+    """new_data 폴더의 파일 개수를 세어 반환 (archived_data도 확인)"""
     data_dir = "new_data"
-    if not os.path.exists(data_dir):
-        return 0
+    archived_data_dir = "archived_data"
     
-    # 이미지 파일들만 카운트
-    image_files = glob.glob(os.path.join(data_dir, "*.png"))
-    image_files.extend(glob.glob(os.path.join(data_dir, "*.jpg")))
-    image_files.extend(glob.glob(os.path.join(data_dir, "*.jpeg")))
+    # new_data 폴더 확인
+    new_data_count = 0
+    if os.path.exists(data_dir):
+        image_files = glob.glob(os.path.join(data_dir, "*.png"))
+        image_files.extend(glob.glob(os.path.join(data_dir, "*.jpg")))
+        image_files.extend(glob.glob(os.path.join(data_dir, "*.jpeg")))
+        new_data_count = len(image_files)
     
-    return len(image_files)
+    # archived_data 폴더에서 최근 배치 확인 (이미 이동된 데이터)
+    archived_data_count = 0
+    if os.path.exists(archived_data_dir):
+        # 가장 최근 배치 폴더 찾기
+        batch_dirs = [d for d in os.listdir(archived_data_dir) if d.startswith('batch_')]
+        if batch_dirs:
+            latest_batch = max(batch_dirs, key=lambda x: os.path.getctime(os.path.join(archived_data_dir, x)))
+            latest_batch_path = os.path.join(archived_data_dir, latest_batch)
+            
+            image_files = glob.glob(os.path.join(latest_batch_path, "*.png"))
+            image_files.extend(glob.glob(os.path.join(latest_batch_path, "*.jpg")))
+            image_files.extend(glob.glob(os.path.join(latest_batch_path, "*.jpeg")))
+            archived_data_count = len(image_files)
+    
+    total_count = new_data_count + archived_data_count
+    print(f"📊 new_data: {new_data_count}개, archived_data(최근): {archived_data_count}개, 총합: {total_count}개")
+    
+    return total_count
 
 def commit_and_push_data():
     """데이터를 Git에 커밋하고 푸시"""
