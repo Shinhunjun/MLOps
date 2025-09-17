@@ -8,9 +8,7 @@ import json
 import glob
 import numpy as np
 from PIL import Image
-import joblib
 from sklearn.model_selection import train_test_split
-from xgboost import XGBClassifier
 import tensorflow as tf
 from tensorflow.keras import models
 import time
@@ -65,44 +63,6 @@ def load_original_data():
     X, y = load_data()
     return X, y
 
-def retrain_xgboost(X_original, y_original, X_new, y_new):
-    """XGBoost 모델 재훈련"""
-    print("🔄 XGBoost 모델 재훈련 중...")
-    
-    # 기존 데이터와 새로운 데이터 결합
-    X_combined = np.vstack([X_original, X_new])
-    y_combined = np.hstack([y_original, y_new])
-    
-    # 훈련/테스트 분할
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_combined, y_combined, test_size=0.2, random_state=42
-    )
-    
-    # XGBoost 모델 훈련
-    xgb_model = XGBClassifier(
-        n_estimators=100,
-        max_depth=6,
-        learning_rate=0.1,
-        random_state=12,
-        verbosity=1,
-        tree_method='hist',
-        n_jobs=-1
-    )
-    
-    start_time = time.time()
-    xgb_model.fit(X_train, y_train)
-    training_time = time.time() - start_time
-    
-    # 정확도 평가
-    accuracy = xgb_model.score(X_test, y_test)
-    print(f"✅ XGBoost 재훈련 완료! 정확도: {accuracy:.4f}, 시간: {training_time:.2f}초")
-    
-    # 모델 저장
-    os.makedirs("../model", exist_ok=True)
-    joblib.dump(xgb_model, "../model/mnist_model.pkl")
-    print("💾 XGBoost 모델이 저장되었습니다.")
-    
-    return xgb_model
 
 def retrain_cnn(X_original, y_original, X_new, y_new):
     """CNN 모델 재훈련"""
@@ -207,16 +167,13 @@ def main():
     
     # 모델 재훈련
     try:
-        # XGBoost 재훈련
-        retrain_xgboost(X_original, y_original, X_new, y_new)
-        
         # CNN 재훈련
         retrain_cnn(X_original, y_original, X_new, y_new)
         
         # 사용된 데이터 아카이브
         archive_used_data()
         
-        print("🎉 모든 모델 재훈련이 완료되었습니다!")
+        print("🎉 CNN 모델 재훈련이 완료되었습니다!")
         
     except Exception as e:
         print(f"❌ 재훈련 중 오류 발생: {e}")

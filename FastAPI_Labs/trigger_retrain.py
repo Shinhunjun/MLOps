@@ -25,6 +25,39 @@ def count_new_data():
     
     return len(image_files)
 
+def commit_and_push_data():
+    """데이터를 Git에 커밋하고 푸시"""
+    try:
+        import subprocess
+        
+        # Git 상태 확인
+        result = subprocess.run(['git', 'status', '--porcelain'], 
+                              capture_output=True, text=True, cwd='.')
+        
+        if not result.stdout.strip():
+            print("📝 커밋할 변경사항이 없습니다.")
+            return True
+        
+        # 모든 변경사항 추가
+        subprocess.run(['git', 'add', '.'], check=True, cwd='.')
+        
+        # 커밋
+        commit_message = f"feat: Add {count_new_data()} new training data points"
+        subprocess.run(['git', 'commit', '-m', commit_message], check=True, cwd='.')
+        
+        # 푸시
+        subprocess.run(['git', 'push'], check=True, cwd='.')
+        
+        print("✅ 데이터가 성공적으로 Git에 푸시되었습니다!")
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Git 작업 실패: {e}")
+        return False
+    except Exception as e:
+        print(f"❌ 오류 발생: {e}")
+        return False
+
 def trigger_github_action():
     """GitHub repository dispatch를 통해 워크플로우 트리거"""
     # GitHub Personal Access Token이 필요합니다
@@ -38,7 +71,12 @@ def trigger_github_action():
         print("export GITHUB_TOKEN='your_token_here'")
         return False
     
-    # GitHub API를 통해 repository dispatch 트리거
+    # 1. 먼저 데이터를 Git에 커밋하고 푸시
+    if not commit_and_push_data():
+        print("❌ 데이터 푸시에 실패했습니다.")
+        return False
+    
+    # 2. GitHub API를 통해 repository dispatch 트리거
     url = "https://api.github.com/repos/{owner}/{repo}/dispatches"
     
     # .env 파일에서 GitHub 정보 로드
@@ -83,8 +121,8 @@ def main():
     data_count = count_new_data()
     print(f"📊 현재 new_data 폴더의 파일 개수: {data_count}")
     
-    if data_count >= 100:
-        print("🎯 100개 이상의 데이터가 수집되었습니다!")
+    if data_count >= 10:  # 테스트를 위해 10개로 변경
+        print("🎯 10개 이상의 데이터가 수집되었습니다!")
         print("🚀 GitHub Actions 워크플로우를 트리거합니다...")
         
         if trigger_github_action():
@@ -93,7 +131,7 @@ def main():
         else:
             print("❌ 워크플로우 트리거에 실패했습니다.")
     else:
-        print(f"⏳ 아직 {100 - data_count}개 더 필요합니다.")
+        print(f"⏳ 아직 {10 - data_count}개 더 필요합니다.")
         print("더 많은 데이터를 수집한 후 다시 실행해주세요.")
 
 if __name__ == "__main__":

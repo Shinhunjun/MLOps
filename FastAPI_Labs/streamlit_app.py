@@ -5,6 +5,49 @@ from PIL import Image
 import io
 import os
 import time
+import glob
+import subprocess
+
+def count_new_data():
+    """new_data 폴더의 파일 개수를 세어 반환"""
+    data_dir = "new_data"
+    if not os.path.exists(data_dir):
+        return 0
+    
+    # 이미지 파일들만 카운트
+    image_files = glob.glob(os.path.join(data_dir, "*.png"))
+    image_files.extend(glob.glob(os.path.join(data_dir, "*.jpg")))
+    image_files.extend(glob.glob(os.path.join(data_dir, "*.jpeg")))
+    
+    return len(image_files)
+
+def check_and_trigger_retrain():
+    """데이터 개수를 체크하고 10개 이상이면 자동으로 재훈련 트리거"""
+    data_count = count_new_data()
+    
+    if data_count >= 10:
+        st.success(f"🎯 {data_count}개의 데이터가 수집되었습니다!")
+        st.info("🚀 자동으로 모델 재훈련을 시작합니다...")
+        
+        try:
+            # trigger_retrain.py 실행
+            result = subprocess.run(
+                ["python", "trigger_retrain.py"], 
+                capture_output=True, 
+                text=True,
+                cwd="."
+            )
+            
+            if result.returncode == 0:
+                st.success("✅ 재훈련 트리거가 성공적으로 실행되었습니다!")
+                st.info("GitHub Actions에서 모델 재훈련이 진행됩니다.")
+            else:
+                st.error(f"❌ 트리거 실행 실패: {result.stderr}")
+                
+        except Exception as e:
+            st.error(f"❌ 트리거 실행 중 오류: {e}")
+    else:
+        st.info(f"📊 현재 데이터: {data_count}개 (10개까지 {10-data_count}개 더 필요)")
 
 # 페이지 설정
 st.set_page_config(
@@ -35,7 +78,7 @@ st.sidebar.header("설정")
 
 api_url = st.sidebar.text_input(
     "API URL", 
-    value="http://localhost:8000/predict-cnn",
+    value="http://localhost:8000/predict",
     help="FastAPI CNN 서버의 엔드포인트 URL"
 )
 
@@ -120,6 +163,9 @@ with col1:
                             # Clear previous feedback state for the new prediction
                             st.session_state.feedback_submitted = False
                             st.session_state.feedback_mode = False
+                            
+                            # 자동 트리거 체크 (예측 후)
+                            check_and_trigger_retrain()
                         else:
                             st.error(f"API 오류: {response.status_code}")
                             st.error(response.text)
@@ -207,6 +253,9 @@ if st.session_state.prediction is not None:
                         processed_image = Image.fromarray(image_array, 'L')
                         processed_image.save(file_path)
 
+                        # 자동 트리거 체크
+                        check_and_trigger_retrain()
+                        
                         st.session_state.feedback_submitted = True
                         st.session_state.feedback_mode = False
                         st.rerun()

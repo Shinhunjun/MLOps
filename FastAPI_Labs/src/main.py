@@ -1,7 +1,7 @@
 from fastapi import FastAPI, status, HTTPException
 from pydantic import BaseModel
 import numpy as np
-from predict import predict_data, predict_with_confidence, predict_with_cnn, reload_models
+from predict import predict_with_cnn, reload_models
 
 
 app = FastAPI()
@@ -27,40 +27,6 @@ async def health_ping():
 
 @app.post("/predict", response_model=MNISTResponse)
 async def predict_mnist(mnist_data: MNISTData):
-    """XGBoost 모델을 사용한 예측"""
-    try:
-        # 784개 픽셀을 2D 배열로 변환 (1, 784)
-        features = [mnist_data.pixels]
-        
-        # 픽셀 개수 검증
-        if len(mnist_data.pixels) != 784:
-            raise HTTPException(
-                status_code=400, 
-                detail="MNIST 이미지는 정확히 784개 픽셀(28x28)이어야 합니다"
-            )
-        
-        # 픽셀 값 범위 검증 (0-1, 정규화된 값)
-        if not all(0 <= pixel <= 1 for pixel in mnist_data.pixels):
-            raise HTTPException(
-                status_code=400,
-                detail="픽셀 값은 0-1 범위(정규화된 값)여야 합니다"
-            )
-
-        # XGBoost 모델로 예측
-        predictions, confidences = predict_with_confidence(features)
-        predicted_class = int(predictions[0])
-        confidence_score = float(confidences[0])
-        
-        return MNISTResponse(
-            prediction=predicted_class,
-            confidence=confidence_score
-        )
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/predict-cnn", response_model=MNISTResponse)
-async def predict_mnist_cnn(mnist_data: MNISTData):
     """CNN 모델을 사용한 예측"""
     try:
         # 784개 픽셀을 2D 배열로 변환 (1, 784)
