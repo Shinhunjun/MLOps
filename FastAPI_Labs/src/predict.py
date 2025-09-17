@@ -23,6 +23,30 @@ def reload_models():
     
     print("🔄 CNN 모델을 다시 로드하는 중...")
     
+    # Git에서 최신 변경사항 pull (archived_data 포함)
+    try:
+        import subprocess
+        import os
+        
+        # MLOps 루트 디렉토리로 이동
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        
+        # Git pull 실행
+        result = subprocess.run(
+            ["git", "pull"], 
+            capture_output=True, 
+            text=True,
+            cwd=repo_root
+        )
+        
+        if result.returncode == 0:
+            print("✅ Git pull 완료! (archived_data 포함)")
+        else:
+            print(f"⚠️ Git pull 실패: {result.stderr}")
+            
+    except Exception as e:
+        print(f"⚠️ Git pull 중 오류: {e}")
+    
     # 기존 모델 초기화
     _cnn_model = None
     

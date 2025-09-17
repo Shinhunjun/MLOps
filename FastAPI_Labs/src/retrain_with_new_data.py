@@ -20,6 +20,15 @@ def load_new_data():
         print("❌ new_data 폴더가 존재하지 않습니다.")
         return None, None
     
+    if not os.listdir(data_dir):
+        print("❌ new_data 폴더가 비어있습니다.")
+        return None, None
+    
+    print("📁 new_data 폴더에서 데이터를 로드합니다.")
+    return load_data_from_directory(data_dir)
+
+def load_data_from_directory(data_dir):
+    """지정된 디렉토리에서 데이터를 로드"""
     # 메타데이터 파일 찾기
     metadata_files = glob.glob(os.path.join(data_dir, "metadata.json"))
     if not metadata_files:
@@ -139,7 +148,7 @@ def retrain_cnn(X_original, y_original, X_new, y_new):
     return cnn_model
 
 def archive_used_data():
-    """사용된 데이터를 아카이브 폴더로 이동"""
+    """사용된 데이터를 archived_data 폴더로 이동"""
     data_dir = "new_data"
     archive_dir = "archived_data"
     

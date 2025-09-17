@@ -27,10 +27,10 @@ def check_and_trigger_retrain():
     
     if data_count >= 10:
         st.success(f"🎯 {data_count}개의 데이터가 수집되었습니다!")
-        st.info("🚀 자동으로 모델 재훈련을 시작합니다...")
+        st.info("🚀 GitHub Actions에서 모델 재훈련을 시작합니다...")
         
         try:
-            # trigger_retrain.py 실행
+            # trigger_retrain.py 실행 (GitHub Actions 트리거만)
             result = subprocess.run(
                 ["python", "trigger_retrain.py"], 
                 capture_output=True, 
@@ -41,6 +41,11 @@ def check_and_trigger_retrain():
             if result.returncode == 0:
                 st.success("✅ 재훈련 트리거가 성공적으로 실행되었습니다!")
                 st.info("GitHub Actions에서 모델 재훈련이 진행됩니다.")
+                st.info("재훈련 완료 후 자동으로 모델이 업데이트됩니다.")
+                
+                # 트리거 성공 후 로컬 데이터 삭제 (충돌 방지)
+                clear_local_data()
+                
             else:
                 st.error(f"❌ 트리거 실행 실패: {result.stderr}")
                 
@@ -48,6 +53,21 @@ def check_and_trigger_retrain():
             st.error(f"❌ 트리거 실행 중 오류: {e}")
     else:
         st.info(f"📊 현재 데이터: {data_count}개 (10개까지 {10-data_count}개 더 필요)")
+
+def clear_local_data():
+    """로컬 new_data 폴더를 삭제하여 충돌 방지"""
+    import shutil
+    data_dir = "new_data"
+    
+    if os.path.exists(data_dir):
+        try:
+            shutil.rmtree(data_dir)
+            print("🗑️ 로컬 new_data 폴더가 삭제되었습니다. (충돌 방지)")
+            st.info("🗑️ 로컬 데이터가 삭제되었습니다. (충돌 방지)")
+        except Exception as e:
+            print(f"⚠️ 데이터 삭제 실패: {e}")
+    else:
+        print("📝 삭제할 데이터가 없습니다.")
 
 # 페이지 설정
 st.set_page_config(

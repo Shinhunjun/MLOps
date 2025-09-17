@@ -40,12 +40,15 @@ jobs:
       - name: Check for new data
         id: check_data
         run: |
+          # new_data 폴더만 확인 (로컬에서 수집된 데이터)
           if [ -d "FastAPI_Labs/new_data" ] && [ "$(ls -A FastAPI_Labs/new_data)" ]; then
             echo "data_exists=true" >> $GITHUB_OUTPUT
             echo "data_count=$(ls FastAPI_Labs/new_data/*.png FastAPI_Labs/new_data/*.jpg 2>/dev/null | wc -l)" >> $GITHUB_OUTPUT
+            echo "data_source=new_data" >> $GITHUB_OUTPUT
           else
             echo "data_exists=false" >> $GITHUB_OUTPUT
             echo "data_count=0" >> $GITHUB_OUTPUT
+            echo "data_source=none" >> $GITHUB_OUTPUT
           fi
 
       - name: Download additional data (if needed)
