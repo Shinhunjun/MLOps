@@ -1,6 +1,7 @@
 from xgboost import XGBClassifier
 import joblib
 from data import load_data, split_data
+from augmentation import augment_dataset
 from sklearn.metrics import accuracy_score
 from tqdm import tqdm
 import time
@@ -40,7 +41,7 @@ def fit_model(X_train, y_train):
     
     # 모델 저장
     print("Saving model...")
-    joblib.dump(xgb_classifier, "../model/mnist_model.pkl")
+    joblib.dump(xgb_classifier, "model/mnist_model.pkl")
     print("Model saved successfully!")
     
     
@@ -51,16 +52,35 @@ def test_model(X_test, y_test):
         X_test (numpy.ndarray): Testing features.
         y_test (numpy.ndarray): Testing target values.
     """
-    model = joblib.load("../model/mnist_model.pkl")
+    model = joblib.load("model/mnist_model.pkl")
     y_pred = model.predict(X_test)
     print(y_pred)
     print(y_test)
     print(accuracy_score(y_test, y_pred))
 
 if __name__ == "__main__":
+    # 데이터 로드
     X, y = load_data()
     X_train, X_test, y_train, y_test = split_data(X, y)
-    fit_model(X_train, y_train)
+    
+    print("=" * 50)
+    print("데이터 증강 적용 전")
+    print(f"훈련 데이터: {X_train.shape[0]}개")
+    print(f"테스트 데이터: {X_test.shape[0]}개")
+    print("=" * 50)
+    
+    # 데이터 증강 적용 (각 이미지당 3개씩 증강)
+    print("데이터 증강을 적용하고 있습니다...")
+    X_train_aug, y_train_aug = augment_dataset(X_train, y_train, augmentation_factor=3)
+    
+    print("=" * 50)
+    print("데이터 증강 적용 후")
+    print(f"훈련 데이터: {X_train_aug.shape[0]}개")
+    print(f"테스트 데이터: {X_test.shape[0]}개")
+    print("=" * 50)
+    
+    # 증강된 데이터로 모델 훈련
+    fit_model(X_train_aug, y_train_aug)
     print("Model trained and saved successfully.")
     
     # test the model
