@@ -68,9 +68,22 @@ def retrain_cnn(X_original, y_original, X_new, y_new):
     """CNN 모델 재훈련"""
     print("🔄 CNN 모델 재훈련 중...")
     
-    # 기존 데이터와 새로운 데이터 결합
-    X_combined = np.vstack([X_original, X_new])
-    y_combined = np.hstack([y_original, y_new])
+    # 새로운 데이터에 증강 적용
+    print(f"🔄 새로운 데이터 증강 중... (증강 배수: 3)")
+    try:
+        from augmentation import augment_dataset
+        X_new_augmented, y_new_augmented = augment_dataset(X_new, y_new, 3)
+        print(f"✅ 데이터 증강 완료: {len(X_new)}개 → {len(X_new_augmented)}개")
+    except ImportError:
+        print("⚠️ augmentation 모듈을 찾을 수 없습니다. 증강 없이 진행합니다.")
+        X_new_augmented, y_new_augmented = X_new, y_new
+    except Exception as e:
+        print(f"⚠️ 데이터 증강 실패: {e}. 원본 데이터로 진행합니다.")
+        X_new_augmented, y_new_augmented = X_new, y_new
+    
+    # 기존 데이터와 증강된 새로운 데이터 결합
+    X_combined = np.vstack([X_original, X_new_augmented])
+    y_combined = np.hstack([y_original, y_new_augmented])
     
     # 훈련/테스트 분할
     X_train, X_test, y_train, y_test = train_test_split(

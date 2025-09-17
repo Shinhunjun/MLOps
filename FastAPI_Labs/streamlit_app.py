@@ -82,6 +82,7 @@ api_url = st.sidebar.text_input(
     help="FastAPI CNN 서버의 엔드포인트 URL"
 )
 
+
 # 메인 컨텐츠
 col1, col2 = st.columns([1, 1])
 
