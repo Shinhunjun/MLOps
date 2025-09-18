@@ -86,10 +86,23 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
         save_dir = "../new_data"
         os.makedirs(save_dir, exist_ok=True)
         
+        # 카운트 파일 로드/생성
+        count_file = os.path.join(save_dir, "count.json")
+        if os.path.exists(count_file):
+            with open(count_file, 'r') as f:
+                count_data = json.load(f)
+        else:
+            count_data = {"current_count": 0, "sub_set_count": 0}
+        
+        # 현재 sub_set 폴더 경로
+        current_sub_set = f"sub_set_{count_data['sub_set_count']}"
+        current_sub_set_path = os.path.join(save_dir, current_sub_set)
+        os.makedirs(current_sub_set_path, exist_ok=True)
+        
         # 이미지 저장
         timestamp = int(time.time() * 1000)
         filename = f"{feedback_data.label}_{timestamp}.png"
-        file_path = os.path.join(save_dir, filename)
+        file_path = os.path.join(current_sub_set_path, filename)
         
         # 픽셀 데이터를 이미지로 변환하여 저장
         pixels = feedback_data.pixels
@@ -98,8 +111,8 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
         processed_image = Image.fromarray(image_array, 'L')
         processed_image.save(file_path)
         
-        # 메타데이터 업데이트
-        metadata_path = os.path.join(save_dir, "metadata.json")
+        # 메타데이터 업데이트 (sub_set 폴더에)
+        metadata_path = os.path.join(current_sub_set_path, "metadata.json")
         if os.path.exists(metadata_path):
             with open(metadata_path, 'r') as f:
                 metadata = json.load(f)
@@ -116,10 +129,34 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
         
-        # 데이터 개수 체크 및 자동 트리거
-        data_count = len([f for f in os.listdir(save_dir) if f.endswith('.png')])
+        # 카운트 파일 로드/생성
+        count_file = os.path.join(save_dir, "count.json")
+        if os.path.exists(count_file):
+            with open(count_file, 'r') as f:
+                count_data = json.load(f)
+        else:
+            count_data = {"current_count": 0, "sub_set_count": 0}
         
-        if data_count >= 10:
+        # 현재 sub_set 폴더의 데이터 개수 확인
+        current_sub_set = f"sub_set_{count_data['sub_set_count']}"
+        current_sub_set_path = os.path.join(save_dir, current_sub_set)
+        
+        if not os.path.exists(current_sub_set_path):
+            os.makedirs(current_sub_set_path, exist_ok=True)
+        
+        # 현재 sub_set의 파일 개수 확인
+        current_files = [f for f in os.listdir(current_sub_set_path) if f.endswith('.png')]
+        current_count = len(current_files)
+        
+        if current_count >= 10:
+            # 10개가 모였으면 다음 sub_set으로 이동
+            count_data['sub_set_count'] += 1
+            count_data['current_count'] = 0
+            
+            # 카운트 파일 업데이트
+            with open(count_file, 'w') as f:
+                json.dump(count_data, f, indent=2)
+            
             # 자동 트리거 실행
             result = subprocess.run(
                 ["python", "trigger_retrain.py"], 
@@ -131,23 +168,25 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
             if result.returncode == 0:
                 return {
                     "status": "success",
-                    "message": f"피드백이 저장되었습니다. ({data_count}개) 재훈련이 자동으로 트리거되었습니다! GitHub Actions에서 학습이 진행됩니다.",
-                    "data_count": data_count,
+                    "message": f"피드백이 저장되었습니다. ({current_count}개) 재훈련이 자동으로 트리거되었습니다! sub_set_{count_data['sub_set_count']-1}이 학습됩니다.",
+                    "data_count": current_count,
+                    "sub_set": f"sub_set_{count_data['sub_set_count']-1}",
                     "triggered": True
                 }
             else:
                 return {
                     "status": "success",
-                    "message": f"피드백이 저장되었습니다. ({data_count}개) 하지만 트리거에 실패했습니다.",
-                    "data_count": data_count,
+                    "message": f"피드백이 저장되었습니다. ({current_count}개) 하지만 트리거에 실패했습니다.",
+                    "data_count": current_count,
                     "triggered": False,
                     "error": result.stderr
                 }
         else:
             return {
                 "status": "success",
-                "message": f"피드백이 저장되었습니다. ({data_count}/10개)",
-                "data_count": data_count,
+                "message": f"피드백이 저장되었습니다. ({current_count}/10개) - sub_set_{count_data['sub_set_count']}",
+                "data_count": current_count,
+                "sub_set": f"sub_set_{count_data['sub_set_count']}",
                 "triggered": False
             }
             

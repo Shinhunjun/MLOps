@@ -40,15 +40,29 @@ jobs:
       - name: Check for new data
         id: check_data
         run: |
-          # new_data 폴더만 확인 (로컬에서 수집된 데이터)
-          if [ -d "FastAPI_Labs/new_data" ] && [ "$(ls -A FastAPI_Labs/new_data)" ]; then
-            echo "data_exists=true" >> $GITHUB_OUTPUT
-            echo "data_count=$(ls FastAPI_Labs/new_data/*.png FastAPI_Labs/new_data/*.jpg 2>/dev/null | wc -l)" >> $GITHUB_OUTPUT
-            echo "data_source=new_data" >> $GITHUB_OUTPUT
+          # new_data 폴더와 count.json 확인
+          if [ -d "FastAPI_Labs/new_data" ] && [ -f "FastAPI_Labs/new_data/count.json" ]; then
+            # count.json에서 현재 sub_set 확인 (이전 배치 데이터 사용)
+            SUB_SET_COUNT=$(python3 -c "import json; data=json.load(open('FastAPI_Labs/new_data/count.json')); print(data['sub_set_count']-1)")
+            SUB_SET_DIR="FastAPI_Labs/new_data/sub_set_${SUB_SET_COUNT}"
+            
+            if [ -d "$SUB_SET_DIR" ] && [ "$(ls -A "$SUB_SET_DIR")" ]; then
+              echo "data_exists=true" >> $GITHUB_OUTPUT
+              echo "data_count=$(ls "$SUB_SET_DIR"/*.png "$SUB_SET_DIR"/*.jpg 2>/dev/null | wc -l)" >> $GITHUB_OUTPUT
+              echo "data_source=$SUB_SET_DIR" >> $GITHUB_OUTPUT
+              echo "sub_set=sub_set_${SUB_SET_COUNT}" >> $GITHUB_OUTPUT
+              echo "📊 Found sub_set_${SUB_SET_COUNT} with ${{ steps.check_data.outputs.data_count }} data points"
+            else
+              echo "data_exists=false" >> $GITHUB_OUTPUT
+              echo "data_count=0" >> $GITHUB_OUTPUT
+              echo "data_source=none" >> $GITHUB_OUTPUT
+              echo "❌ No data found in $SUB_SET_DIR"
+            fi
           else
             echo "data_exists=false" >> $GITHUB_OUTPUT
             echo "data_count=0" >> $GITHUB_OUTPUT
             echo "data_source=none" >> $GITHUB_OUTPUT
+            echo "❌ new_data folder or count.json not found"
           fi
 
       - name: Download additional data (if needed)

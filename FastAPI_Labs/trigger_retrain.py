@@ -13,15 +13,30 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def count_new_data():
-    """new_data 폴더의 파일 개수를 세어 반환"""
+    """new_data 폴더의 sub_set 파일 개수를 세어 반환"""
     data_dir = "new_data"
     if not os.path.exists(data_dir):
         return 0
     
+    # count.json 파일 확인
+    count_file = os.path.join(data_dir, "count.json")
+    if not os.path.exists(count_file):
+        return 0
+    
+    with open(count_file, 'r') as f:
+        count_data = json.load(f)
+    
+    # 현재 sub_set 폴더 확인
+    current_sub_set = f"sub_set_{count_data['sub_set_count'] - 1}"  # 이전 sub_set
+    sub_set_path = os.path.join(data_dir, current_sub_set)
+    
+    if not os.path.exists(sub_set_path):
+        return 0
+    
     # 이미지 파일들만 카운트
-    image_files = glob.glob(os.path.join(data_dir, "*.png"))
-    image_files.extend(glob.glob(os.path.join(data_dir, "*.jpg")))
-    image_files.extend(glob.glob(os.path.join(data_dir, "*.jpeg")))
+    image_files = glob.glob(os.path.join(sub_set_path, "*.png"))
+    image_files.extend(glob.glob(os.path.join(sub_set_path, "*.jpg")))
+    image_files.extend(glob.glob(os.path.join(sub_set_path, "*.jpeg")))
     
     return len(image_files)
 

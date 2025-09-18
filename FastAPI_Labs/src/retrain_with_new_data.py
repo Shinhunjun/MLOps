@@ -14,18 +14,33 @@ from tensorflow.keras import models
 import time
 
 def load_new_data():
-    """new_data 폴더에서 새로운 데이터를 로드"""
-    data_dir = "new_data"
-    if not os.path.exists(data_dir):
-        print("❌ new_data 폴더가 존재하지 않습니다.")
+    """new_data/sub_set_N 폴더에서 새로운 데이터를 로드"""
+    # count.json에서 현재 sub_set 확인
+    count_file = "new_data/count.json"
+    if not os.path.exists(count_file):
+        print("❌ count.json 파일이 존재하지 않습니다.")
         return None, None
     
-    if not os.listdir(data_dir):
-        print("❌ new_data 폴더가 비어있습니다.")
+    with open(count_file, 'r') as f:
+        count_data = json.load(f)
+    
+    # 이전 sub_set (현재 - 1)에서 데이터 로드
+    sub_set_count = count_data['sub_set_count']
+    if sub_set_count == 0:
+        print("❌ 아직 훈련할 데이터가 없습니다.")
         return None, None
     
-    print("📁 new_data 폴더에서 데이터를 로드합니다.")
-    return load_data_from_directory(data_dir)
+    sub_set_dir = f"new_data/sub_set_{sub_set_count - 1}"
+    if not os.path.exists(sub_set_dir):
+        print(f"❌ {sub_set_dir} 폴더가 존재하지 않습니다.")
+        return None, None
+    
+    if not os.listdir(sub_set_dir):
+        print(f"❌ {sub_set_dir} 폴더가 비어있습니다.")
+        return None, None
+    
+    print(f"📁 {sub_set_dir} 폴더에서 데이터를 로드합니다.")
+    return load_data_from_directory(sub_set_dir)
 
 def load_data_from_directory(data_dir):
     """지정된 디렉토리에서 데이터를 로드"""
@@ -147,26 +162,6 @@ def retrain_cnn(X_original, y_original, X_new, y_new):
     
     return cnn_model
 
-def archive_used_data():
-    """사용된 데이터를 archived_data 폴더로 이동"""
-    data_dir = "new_data"
-    archive_dir = "archived_data"
-    
-    os.makedirs(archive_dir, exist_ok=True)
-    
-    # 현재 타임스탬프로 아카이브 폴더 생성
-    timestamp = int(time.time())
-    archive_subdir = os.path.join(archive_dir, f"batch_{timestamp}")
-    os.makedirs(archive_subdir, exist_ok=True)
-    
-    # 파일들 이동
-    for filename in os.listdir(data_dir):
-        if filename.endswith(('.png', '.jpg', '.jpeg', '.json')):
-            src = os.path.join(data_dir, filename)
-            dst = os.path.join(archive_subdir, filename)
-            os.rename(src, dst)
-    
-    print(f"📁 사용된 데이터가 {archive_subdir}로 아카이브되었습니다.")
 
 def main():
     """메인 함수"""
@@ -192,8 +187,8 @@ def main():
         # CNN 재훈련
         retrain_cnn(X_original, y_original, X_new, y_new)
         
-        # 사용된 데이터 아카이브
-        archive_used_data()
+        # 사용된 데이터는 sub_set_N 구조에서 자동으로 관리됨
+        # archive_used_data()  # 더 이상 필요하지 않음
         
         print("🎉 CNN 모델 재훈련이 완료되었습니다!")
         
