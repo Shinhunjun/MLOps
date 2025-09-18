@@ -206,10 +206,8 @@ streamlit run streamlit_app.py --server.port 8501
 
 ## 📈 Future Enhancements
 
-- **A/B testing framework** for model comparison
 - **Advanced monitoring** with metrics dashboards
 - **Distributed training** for larger datasets
-- **Model explainability** features
 - **Performance alerting** system
 
 ---

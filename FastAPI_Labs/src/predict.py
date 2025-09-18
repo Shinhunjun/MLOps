@@ -3,29 +3,29 @@ import tensorflow as tf
 from tensorflow.keras import models
 import os
 
-# 모델 로딩을 위한 전역 변수
+# Global variables for model loading
 _cnn_model = None
 
 def load_models():
-    """CNN 모델을 로드합니다."""
+    """Load CNN models."""
     global _cnn_model
     
     if _cnn_model is None:
         try:
-            # 최신 모델 파일 찾기
+            # Find latest model file
             model_path = find_latest_model()
             if model_path:
                 _cnn_model = models.load_model(model_path)
-                print(f"CNN 모델이 로드되었습니다: {os.path.basename(model_path)}")
+                print(f"CNN model loaded: {os.path.basename(model_path)}")
             else:
-                print("❌ 모델 파일을 찾을 수 없습니다.")
+                print("❌ Model file not found.")
                 _cnn_model = None
         except Exception as e:
-            print(f"CNN 모델 로드 실패: {e}")
+            print(f"CNN model load failed: {e}")
             _cnn_model = None
 
 def find_latest_model():
-    """가장 최신의 모델 파일을 찾습니다."""
+    """Find the latest model file."""
     import glob
     import os
     
@@ -33,35 +33,35 @@ def find_latest_model():
     if not os.path.exists(model_dir):
         return None
     
-    # cnn_mnist_model_*.h5 패턴의 파일들 찾기
+    # Find files matching cnn_mnist_model_*.h5 pattern
     model_files = glob.glob(os.path.join(model_dir, "cnn_mnist_model_*.h5"))
     
     if not model_files:
-        # 기존 파일명도 확인
+        # Check for old filename as well
         old_model = os.path.join(model_dir, "cnn_mnist_model.h5")
         if os.path.exists(old_model):
             return old_model
         return None
     
-    # 타임스탬프로 정렬하여 가장 최신 파일 반환
+    # Sort by timestamp and return the latest file
     model_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]), reverse=True)
     return model_files[0]
 
 def reload_models():
-    """CNN 모델을 강제로 다시 로드합니다."""
+    """Force reload CNN models."""
     global _cnn_model
     
-    print("🔄 CNN 모델을 다시 로드하는 중...")
+    print("🔄 Reloading CNN models...")
     
-    # Git에서 최신 변경사항 pull (archived_data 포함)
+    # Pull latest changes from Git (including archived_data)
     try:
         import subprocess
         import os
         
-        # MLOps 루트 디렉토리로 이동
+        # Move to MLOps root directory
         repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         
-        # Git pull 실행
+        # Execute Git pull
         result = subprocess.run(
             ["git", "pull"], 
             capture_output=True, 
@@ -70,30 +70,30 @@ def reload_models():
         )
         
         if result.returncode == 0:
-            print("✅ Git pull 완료! (archived_data 포함)")
+            print("✅ Git pull completed! (including archived_data)")
             
-            # new_data 폴더가 비어있는지 확인 (GitHub Actions 완료 후)
+            # Check if new_data folder is empty (after GitHub Actions completion)
             new_data_path = os.path.join(repo_root, "FastAPI_Labs", "new_data")
             if os.path.exists(new_data_path) and not os.listdir(new_data_path):
-                print("📁 new_data 폴더가 비어있습니다. (GitHub Actions 완료)")
+                print("📁 new_data folder is empty. (GitHub Actions completed)")
             elif os.path.exists(new_data_path):
-                print(f"📁 new_data 폴더에 {len(os.listdir(new_data_path))}개 파일이 있습니다.")
+                print(f"📁 new_data folder contains {len(os.listdir(new_data_path))} files.")
         else:
-            print(f"⚠️ Git pull 실패: {result.stderr}")
+            print(f"⚠️ Git pull failed: {result.stderr}")
             
     except Exception as e:
-        print(f"⚠️ Git pull 중 오류: {e}")
+        print(f"⚠️ Error during Git pull: {e}")
     
-    # 기존 모델 초기화
+    # Initialize existing models
     _cnn_model = None
     
-    # 모델 다시 로드
+    # Reload models
     load_models()
-    print("✅ CNN 모델 리로드 완료!")
+    print("✅ CNN model reload completed!")
 
 def predict_with_cnn(X):
     """
-    CNN 모델로 예측하고 신뢰도를 반환합니다.
+    Predict using CNN model and return confidence.
     Args:
         X (numpy.ndarray): Input data for which predictions are to be made (N, 784).
     Returns:
@@ -103,18 +103,18 @@ def predict_with_cnn(X):
         load_models()
     
     if _cnn_model is not None:
-        # 입력 데이터를 CNN 형태로 변환 (N, 784) -> (N, 28, 28, 1)
+        # Convert input data to CNN format (N, 784) -> (N, 28, 28, 1)
         X_cnn = X.reshape(-1, 28, 28, 1)
         
-        # 예측 확률 계산
+        # Calculate prediction probabilities
         probabilities = _cnn_model.predict(X_cnn, verbose=0)
         
-        # 가장 높은 확률을 신뢰도로 사용
+        # Use highest probability as confidence
         confidence_scores = np.max(probabilities, axis=1)
         
-        # 예측 클래스
+        # Predicted classes
         predictions = np.argmax(probabilities, axis=1)
         
         return predictions, confidence_scores
     else:
-        raise Exception("CNN 모델을 로드할 수 없습니다.")
+        raise Exception("CNN model cannot be loaded.")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-새로운 데이터를 사용하여 모델을 재훈련하는 스크립트
+Script to retrain models using new data
 """
 import os
 import sys
@@ -14,32 +14,32 @@ from tensorflow.keras import models
 import time
 
 def load_new_data():
-    """new_data/sub_set_N 폴더에서 새로운 데이터를 로드"""
-    # count.json에서 현재 sub_set 확인
+    """Load new data from new_data/sub_set_N folder"""
+    # Check current sub_set from count.json
     count_file = "new_data/count.json"
     if not os.path.exists(count_file):
-        print("❌ count.json 파일이 존재하지 않습니다.")
+        print("❌ count.json file does not exist.")
         return None, None
     
     with open(count_file, 'r') as f:
         count_data = json.load(f)
     
-    # 이전 sub_set (현재 - 1)에서 데이터 로드
+    # Load data from previous sub_set (current - 1)
     sub_set_count = count_data['sub_set_count']
     if sub_set_count == 0:
-        print("❌ 아직 훈련할 데이터가 없습니다.")
+        print("❌ No data available for training yet.")
         return None, None
     
     sub_set_dir = f"new_data/sub_set_{sub_set_count - 1}"
     if not os.path.exists(sub_set_dir):
-        print(f"❌ {sub_set_dir} 폴더가 존재하지 않습니다.")
+        print(f"❌ {sub_set_dir} folder does not exist.")
         return None, None
     
     if not os.listdir(sub_set_dir):
-        print(f"❌ {sub_set_dir} 폴더가 비어있습니다.")
+        print(f"❌ {sub_set_dir} folder is empty.")
         return None, None
     
-    print(f"📁 {sub_set_dir} 폴더에서 데이터를 로드합니다.")
+    print(f"📁 Loading data from {sub_set_dir} folder.")
     return load_data_from_directory(sub_set_dir)
 
 def load_data_from_directory(data_dir):

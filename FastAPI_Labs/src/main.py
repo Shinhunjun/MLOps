@@ -6,39 +6,39 @@ from predict import predict_with_cnn, reload_models
 
 app = FastAPI()
 
-# 앱 시작 시 모델 로드
+# Load models on app startup
 @app.on_event("startup")
 async def startup_event():
-    # 시작 시 Git pull 실행
+    # Execute Git pull on startup
     try:
         import subprocess
-        print("🔄 시작 시 최신 모델을 가져오는 중...")
+        print("🔄 Fetching latest models on startup...")
         result = subprocess.run(['git', 'pull'], capture_output=True, text=True, cwd='..')
         if result.returncode == 0:
-            print("✅ Git pull 성공")
+            print("✅ Git pull successful")
         else:
-            print(f"⚠️ Git pull 실패: {result.stderr}")
+            print(f"⚠️ Git pull failed: {result.stderr}")
     except Exception as e:
-        print(f"⚠️ Git pull 중 오류: {e}")
+        print(f"⚠️ Error during Git pull: {e}")
     
-    # 모델 로드
+    # Load models
     from predict import load_models
     load_models()
 
 class MNISTData(BaseModel):
-    pixels: list[float]  # 784개 픽셀 값 (28x28 = 784)
+    pixels: list[float]  # 784 pixel values (28x28 = 784)
     
     class Config:
-        # 784개 픽셀 검증
+        # 784 pixel validation
         json_schema_extra = {
             "example": {
-                "pixels": [0.0] * 784  # 784개 0.0 값 예시 (정규화된 검은 이미지)
+                "pixels": [0.0] * 784  # Example of 784 0.0 values (normalized black image)
             }
         }
 
 class MNISTResponse(BaseModel):
-    prediction: int  # 0-9 숫자 예측 결과
-    confidence: float  # 예측 신뢰도 (선택사항)
+    prediction: int  # 0-9 digit prediction result
+    confidence: float  # Prediction confidence (optional)
 
 @app.get("/", status_code=status.HTTP_200_OK)
 async def health_ping():
@@ -46,7 +46,7 @@ async def health_ping():
 
 @app.get("/model-info")
 async def get_model_info():
-    """현재 로드된 모델 정보를 반환합니다."""
+    """Return information about the currently loaded model."""
     try:
         from predict import find_latest_model
         model_path = find_latest_model()
@@ -74,26 +74,26 @@ async def get_model_info():
 
 @app.post("/predict", response_model=MNISTResponse)
 async def predict_mnist(mnist_data: MNISTData):
-    """CNN 모델을 사용한 예측"""
+    """Prediction using CNN model"""
     try:
-        # 784개 픽셀을 2D 배열로 변환 (1, 784)
+        # Convert 784 pixels to 2D array (1, 784)
         features = np.array([mnist_data.pixels])
         
-        # 픽셀 개수 검증
+        # Validate pixel count
         if len(mnist_data.pixels) != 784:
             raise HTTPException(
                 status_code=400, 
-                detail="MNIST 이미지는 정확히 784개 픽셀(28x28)이어야 합니다"
+                detail="MNIST image must have exactly 784 pixels (28x28)"
             )
         
-        # 픽셀 값 범위 검증 (0-1, 정규화된 값)
+        # Validate pixel value range (0-1, normalized values)
         if not all(0 <= pixel <= 1 for pixel in mnist_data.pixels):
             raise HTTPException(
                 status_code=400,
-                detail="픽셀 값은 0-1 범위(정규화된 값)여야 합니다"
+                detail="Pixel values must be in range 0-1 (normalized values)"
             )
 
-        # CNN 모델로 예측
+        # Predict using CNN model
         predictions, confidences = predict_with_cnn(features)
         predicted_class = int(predictions[0])
         confidence_score = float(confidences[0])
@@ -108,50 +108,50 @@ async def predict_mnist(mnist_data: MNISTData):
 
 @app.post("/reload-models")
 async def reload_models_endpoint():
-    """모델을 다시 로드하는 엔드포인트 (GitHub Actions에서 호출)"""
+    """Endpoint to reload models (called from GitHub Actions)"""
     try:
         reload_models()
-        return {"status": "success", "message": "모델이 성공적으로 다시 로드되었습니다."}
+        return {"status": "success", "message": "Models have been successfully reloaded."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"모델 리로드 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Model reload failed: {str(e)}")
 
 @app.post("/auto-update-model")
 async def auto_update_model():
-    """자동으로 모델을 업데이트합니다 (GitHub Actions 완료 후 호출)."""
+    """Automatically update models (called after GitHub Actions completion)."""
     try:
         import subprocess
         
-        # 1. Git pull로 최신 모델 가져오기
+        # 1. Git pull to get latest model
         pull_result = subprocess.run(['git', 'pull'], capture_output=True, text=True, cwd='..')
         
         if pull_result.returncode != 0:
-            return {"message": f"Git pull 실패: {pull_result.stderr}", "status": "error"}
+            return {"message": f"Git pull failed: {pull_result.stderr}", "status": "error"}
         
-        # 2. 최신 모델 파일 확인
+        # 2. Check latest model file
         from predict import find_latest_model
         model_path = find_latest_model()
         if not model_path:
-            return {"message": "모델 파일을 찾을 수 없습니다.", "status": "error"}
+            return {"message": "Model file not found.", "status": "error"}
         
-        # 3. 모델 다시 로드
+        # 3. Reload models
         reload_models()
         
         return {
-            "message": "모델이 자동으로 업데이트되었습니다!",
+            "message": "Models have been automatically updated!",
             "git_output": pull_result.stdout,
             "status": "success"
         }
         
     except Exception as e:
-        return {"message": f"자동 업데이트 중 오류 발생: {str(e)}", "status": "error"}
+        return {"message": f"Error occurred during auto update: {str(e)}", "status": "error"}
 
 class FeedbackData(BaseModel):
-    pixels: list[float]  # 784개 픽셀 값
-    label: int  # 정확한 라벨 (0-9)
+    pixels: list[float]  # 784 pixel values
+    label: int  # Correct label (0-9)
 
 @app.post("/save-feedback")
 async def save_feedback_endpoint(feedback_data: FeedbackData):
-    """피드백 데이터를 저장하고 자동으로 트리거를 체크하는 엔드포인트"""
+    """Endpoint to save feedback data and automatically check triggers"""
     try:
         import os
         import json
@@ -159,11 +159,11 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
         from PIL import Image
         import subprocess
         
-        # 데이터 저장
+        # Save data
         save_dir = "../new_data"
         os.makedirs(save_dir, exist_ok=True)
         
-        # 카운트 파일 로드/생성
+        # Load/create count file
         count_file = os.path.join(save_dir, "count.json")
         if os.path.exists(count_file):
             with open(count_file, 'r') as f:
@@ -171,24 +171,24 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
         else:
             count_data = {"current_count": 0, "sub_set_count": 0}
         
-        # 현재 sub_set 폴더 경로
+        # Current sub_set folder path
         current_sub_set = f"sub_set_{count_data['sub_set_count']}"
         current_sub_set_path = os.path.join(save_dir, current_sub_set)
         os.makedirs(current_sub_set_path, exist_ok=True)
         
-        # 이미지 저장
+        # Save image
         timestamp = int(time.time() * 1000)
         filename = f"{feedback_data.label}_{timestamp}.png"
         file_path = os.path.join(current_sub_set_path, filename)
         
-        # 픽셀 데이터를 이미지로 변환하여 저장
+        # Convert pixel data to image and save
         pixels = feedback_data.pixels
         image_array = np.array(pixels).reshape(28, 28)
         image_array = (image_array * 255).astype(np.uint8)
         processed_image = Image.fromarray(image_array, 'L')
         processed_image.save(file_path)
         
-        # 메타데이터 업데이트 (sub_set 폴더에)
+        # Update metadata (in sub_set folder)
         metadata_path = os.path.join(current_sub_set_path, "metadata.json")
         if os.path.exists(metadata_path):
             with open(metadata_path, 'r') as f:
@@ -206,7 +206,7 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
         
-        # 카운트 파일 로드/생성
+        # Load/create count file
         count_file = os.path.join(save_dir, "count.json")
         if os.path.exists(count_file):
             with open(count_file, 'r') as f:
@@ -214,27 +214,27 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
         else:
             count_data = {"current_count": 0, "sub_set_count": 0}
         
-        # 현재 sub_set 폴더의 데이터 개수 확인
+        # Check data count in current sub_set folder
         current_sub_set = f"sub_set_{count_data['sub_set_count']}"
         current_sub_set_path = os.path.join(save_dir, current_sub_set)
         
         if not os.path.exists(current_sub_set_path):
             os.makedirs(current_sub_set_path, exist_ok=True)
         
-        # 현재 sub_set의 파일 개수 확인
+        # Check file count in current sub_set
         current_files = [f for f in os.listdir(current_sub_set_path) if f.endswith('.png')]
         current_count = len(current_files)
         
         if current_count >= 10:
-            # 10개가 모였으면 다음 sub_set으로 이동
+            # Move to next sub_set when 10 samples are collected
             count_data['sub_set_count'] += 1
             count_data['current_count'] = 0
             
-            # 카운트 파일 업데이트
+            # Update count file
             with open(count_file, 'w') as f:
                 json.dump(count_data, f, indent=2)
             
-            # 자동 트리거 실행
+            # Execute auto trigger
             result = subprocess.run(
                 ["python", "trigger_retrain.py"], 
                 capture_output=True, 
@@ -245,7 +245,7 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
             if result.returncode == 0:
                 return {
                     "status": "success",
-                    "message": f"피드백이 저장되었습니다. ({current_count}개) 재훈련이 자동으로 트리거되었습니다! sub_set_{count_data['sub_set_count']-1}이 학습됩니다.",
+                    "message": f"Feedback saved. ({current_count} samples) Retraining has been automatically triggered! sub_set_{count_data['sub_set_count']-1} will be trained.",
                     "data_count": current_count,
                     "sub_set": f"sub_set_{count_data['sub_set_count']-1}",
                     "triggered": True
@@ -253,7 +253,7 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
             else:
                 return {
                     "status": "success",
-                    "message": f"피드백이 저장되었습니다. ({current_count}개) 하지만 트리거에 실패했습니다.",
+                    "message": f"Feedback saved. ({current_count} samples) but trigger failed.",
                     "data_count": current_count,
                     "triggered": False,
                     "error": result.stderr
@@ -261,14 +261,14 @@ async def save_feedback_endpoint(feedback_data: FeedbackData):
         else:
             return {
                 "status": "success",
-                "message": f"피드백이 저장되었습니다. ({current_count}/10개) - sub_set_{count_data['sub_set_count']}",
+                "message": f"Feedback saved. ({current_count}/10 samples) - sub_set_{count_data['sub_set_count']}",
                 "data_count": current_count,
                 "sub_set": f"sub_set_{count_data['sub_set_count']}",
                 "triggered": False
             }
             
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"피드백 저장 중 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error occurred while saving feedback: {str(e)}")
 
 
 

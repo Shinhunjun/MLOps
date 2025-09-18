@@ -9,12 +9,12 @@ import glob
 import subprocess
 
 def count_new_data():
-    """new_data 폴더의 파일 개수를 세어 반환"""
+    """Count and return the number of files in new_data folder"""
     data_dir = "new_data"
     if not os.path.exists(data_dir):
         return 0
     
-    # 이미지 파일들만 카운트
+    # Count only image files
     image_files = glob.glob(os.path.join(data_dir, "*.png"))
     image_files.extend(glob.glob(os.path.join(data_dir, "*.jpg")))
     image_files.extend(glob.glob(os.path.join(data_dir, "*.jpeg")))
@@ -22,15 +22,15 @@ def count_new_data():
     return len(image_files)
 
 def check_and_trigger_retrain():
-    """데이터 개수를 체크하고 10개 이상이면 자동으로 재훈련 트리거"""
+    """Check data count and trigger retraining if 10 or more samples are available"""
     data_count = count_new_data()
     
     if data_count >= 10:
-        st.success(f"🎯 {data_count}개의 데이터가 수집되었습니다!")
-        st.info("🚀 GitHub Actions에서 모델 재훈련을 시작합니다...")
+        st.success(f"🎯 {data_count} data samples have been collected!")
+        st.info("🚀 Starting model retraining in GitHub Actions...")
         
         try:
-            # trigger_retrain.py 실행 (GitHub Actions 트리거만)
+            # Execute trigger_retrain.py (GitHub Actions trigger only)
             result = subprocess.run(
                 ["python", "trigger_retrain.py"], 
                 capture_output=True, 
@@ -39,39 +39,39 @@ def check_and_trigger_retrain():
             )
             
             if result.returncode == 0:
-                st.success("✅ 재훈련 트리거가 성공적으로 실행되었습니다!")
-                st.info("GitHub Actions에서 모델 재훈련이 진행됩니다.")
-                st.info("재훈련 완료 후 자동으로 모델이 업데이트됩니다.")
+                st.success("✅ Retraining trigger executed successfully!")
+                st.info("Model retraining is in progress in GitHub Actions.")
+                st.info("The model will be automatically updated after retraining is complete.")
                 
-                # 트리거 성공 후 로컬 데이터 삭제 (충돌 방지)
+                # Delete local data after successful trigger (conflict prevention)
                 clear_local_data()
                 
             else:
-                st.error(f"❌ 트리거 실행 실패: {result.stderr}")
+                st.error(f"❌ Trigger execution failed: {result.stderr}")
                 
         except Exception as e:
-            st.error(f"❌ 트리거 실행 중 오류: {e}")
+            st.error(f"❌ Error during trigger execution: {e}")
     else:
-        st.info(f"📊 현재 데이터: {data_count}개 (10개까지 {10-data_count}개 더 필요)")
+        st.info(f"📊 Current data: {data_count} samples ({10-data_count} more needed to reach 10)")
 
 def clear_local_data():
-    """로컬 new_data 폴더를 삭제하여 충돌 방지"""
+    """Delete local new_data folder to prevent conflicts"""
     import shutil
     data_dir = "new_data"
     
     if os.path.exists(data_dir):
         try:
             shutil.rmtree(data_dir)
-            print("🗑️ 로컬 new_data 폴더가 삭제되었습니다. (충돌 방지)")
-            st.info("🗑️ 로컬 데이터가 삭제되었습니다. (충돌 방지)")
+            print("🗑️ Local new_data folder has been deleted. (conflict prevention)")
+            st.info("🗑️ Local data has been deleted. (conflict prevention)")
         except Exception as e:
-            print(f"⚠️ 데이터 삭제 실패: {e}")
+            print(f"⚠️ Data deletion failed: {e}")
     else:
-        print("📝 삭제할 데이터가 없습니다.")
+        print("📝 No data to delete.")
 
-# 페이지 설정
+# Page configuration
 st.set_page_config(
-    page_title="MNIST 숫자 인식기",
+    page_title="MNIST Digit Recognition",
     page_icon="🔢",
     layout="wide"
 )
@@ -89,24 +89,24 @@ if 'feedback_mode' not in st.session_state:
 if 'current_file_id' not in st.session_state:
     st.session_state.current_file_id = None
 
-# 제목
-st.title("🔢 MNIST 숫자 인식기")
-st.markdown("이미지를 업로드하면 AI가 숫자를 예측해드립니다!")
+# Title
+st.title("🔢 MNIST Digit Recognition")
+st.markdown("Upload an image and AI will predict the digit for you!")
 
-# 사이드바
-st.sidebar.header("설정")
+# Sidebar
+st.sidebar.header("Settings")
 
 api_url = st.sidebar.text_input(
     "API URL", 
     value="http://localhost:8000/predict",
-    help="FastAPI CNN 서버의 엔드포인트 URL"
+    help="FastAPI CNN server endpoint URL"
 )
 
 st.sidebar.markdown("---")
-st.sidebar.header("🔄 모델 관리")
+st.sidebar.header("🔄 Model Management")
 
-if st.sidebar.button("🔄 모델 자동 업데이트", use_container_width=True):
-    with st.spinner("최신 모델을 가져오는 중..."):
+if st.sidebar.button("🔄 Auto Update Model", use_container_width=True):
+    with st.spinner("Fetching latest model..."):
         try:
             response = requests.post("http://localhost:8000/auto-update-model", timeout=30)
             if response.status_code == 200:
@@ -114,34 +114,34 @@ if st.sidebar.button("🔄 모델 자동 업데이트", use_container_width=True
                 st.sidebar.success(result["message"])
                 st.rerun()
             else:
-                st.sidebar.error(f"업데이트 실패: {response.status_code}")
+                st.sidebar.error(f"Update failed: {response.status_code}")
         except Exception as e:
-            st.sidebar.error(f"업데이트 중 오류: {e}")
+            st.sidebar.error(f"Error during update: {e}")
 
-if st.sidebar.button("🔄 모델 리로드", use_container_width=True):
-    with st.spinner("모델을 리로드하는 중..."):
+if st.sidebar.button("🔄 Reload Model", use_container_width=True):
+    with st.spinner("Reloading model..."):
         try:
             response = requests.post("http://localhost:8000/reload-models", timeout=30)
             if response.status_code == 200:
                 result = response.json()
                 st.sidebar.success(result["message"])
             else:
-                st.sidebar.error(f"리로드 실패: {response.status_code}")
+                st.sidebar.error(f"Reload failed: {response.status_code}")
         except Exception as e:
-            st.sidebar.error(f"리로드 중 오류: {e}")
+            st.sidebar.error(f"Error during reload: {e}")
 
 
-# 메인 컨텐츠
+# Main content
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.header("📷 이미지 업로드")
+    st.header("📷 Image Upload")
     
-    # 파일 업로드
+    # File upload
     uploaded_file = st.file_uploader(
-        "숫자 이미지를 업로드하세요",
+        "Upload a digit image",
         type=['png', 'jpg', 'jpeg'],
-        help="28x28 픽셀 크기의 숫자 이미지를 업로드하세요"
+        help="Upload a 28x28 pixel digit image"
     )
     
     if uploaded_file is not None:
@@ -153,19 +153,19 @@ with col1:
             st.session_state.feedback_submitted = False
             st.session_state.feedback_mode = False
 
-        # 이미지 표시
+        # Display image
         image = Image.open(uploaded_file)
-        st.image(image, caption="업로드된 이미지", use_container_width=True)
+        st.image(image, caption="Uploaded image", use_container_width=True)
         
-        # 이미지 전처리 (백그라운드에서 실행)
-        # 그레이스케일 변환
+        # Image preprocessing (runs in background)
+        # Convert to grayscale
         if image.mode != 'L':
             image = image.convert('L')
         
-        # 28x28 크기로 리사이즈
+        # Resize to 28x28
         image = image.resize((28, 28), Image.Resampling.LANCZOS)
         
-        # 픽셀 값 추출 및 전처리
+        # Extract and preprocess pixel values
         try:
             pixels = np.array(image).flatten()
             pixels_2d = pixels.reshape(28, 28)
@@ -181,14 +181,14 @@ with col1:
             pixels = pixels.tolist()
             
         except Exception as e:
-            st.error(f"전처리 중 오류 발생: {str(e)}")
+            st.error(f"Error during preprocessing: {str(e)}")
             pixels = None
 
         if pixels:
             
-            # 예측 버튼
-            if st.button("🔍 숫자 예측하기", type="primary"):
-                with st.spinner("AI가 숫자를 분석 중..."):
+            # Prediction button
+            if st.button("🔍 Predict Digit", type="primary"):
+                with st.spinner("AI is analyzing the digit..."):
                     try:
                         data = {"pixels": pixels}
                         response = requests.post(api_url, json=data)
@@ -201,25 +201,25 @@ with col1:
                             st.session_state.feedback_submitted = False
                             st.session_state.feedback_mode = False
                             
-                            # 자동 트리거 체크 (예측 후)
+                            # Auto trigger check (after prediction)
                             check_and_trigger_retrain()
                         else:
-                            st.error(f"API 오류: {response.status_code}")
+                            st.error(f"API error: {response.status_code}")
                             st.error(response.text)
                             st.session_state.prediction = None
                     
                     except requests.exceptions.ConnectionError:
-                        st.error("🚫 FastAPI 서버에 연결할 수 없습니다.")
-                        st.info("서버가 실행 중인지 확인해주세요: `uvicorn src.main:app --reload`")
+                        st.error("🚫 Cannot connect to FastAPI server.")
+                        st.info("Please check if the server is running: `uvicorn src.main:app --reload`")
                         st.session_state.prediction = None
                     except Exception as e:
-                        st.error(f"오류가 발생했습니다: {str(e)}")
+                        st.error(f"An error occurred: {str(e)}")
                         st.session_state.prediction = None
 
 # Display results and feedback if a prediction exists in the session state
 if st.session_state.prediction is not None:
     with col2:
-        st.header("🎯 예측 결과")
+        st.header("🎯 Prediction Result")
         
         prediction = st.session_state.prediction
         confidence = st.session_state.confidence
@@ -227,43 +227,43 @@ if st.session_state.prediction is not None:
         st.markdown(f"""
         <div style="text-align: center; padding: 2rem;">
             <h1 style="font-size: 8rem; margin: 0; color: #1f77b4;">{prediction}</h1>
-            <p style="font-size: 1.5rem; color: #666;">예측된 숫자</p>
+            <p style="font-size: 1.5rem; color: #666;">Predicted Digit</p>
         </div>
         """, unsafe_allow_html=True)
         
-        st.metric("신뢰도", f"{confidence:.2%}")
+        st.metric("Confidence", f"{confidence:.2%}")
         
-        # 모델 정보 표시
+        # Display model information
         try:
             import requests
             response = requests.get("http://localhost:8000/model-info", timeout=5)
             if response.status_code == 200:
                 model_info = response.json()
-                st.info(f"🤖 사용된 모델: **{model_info.get('model_name', 'CNN (FastAPI)')}**")
+                st.info(f"🤖 Model used: **{model_info.get('model_name', 'CNN (FastAPI)')}**")
             else:
-                st.info(f"🤖 사용된 모델: **CNN (FastAPI)**")
+                st.info(f"🤖 Model used: **CNN (FastAPI)**")
         except:
-            st.info(f"🤖 사용된 모델: **CNN (FastAPI)**")
+            st.info(f"🤖 Model used: **CNN (FastAPI)**")
         
         st.progress(confidence)
         
         if confidence > 0.8:
-            st.success("🎉 높은 신뢰도로 예측되었습니다!")
+            st.success("🎉 Predicted with high confidence!")
         elif confidence > 0.5:
-            st.warning("⚠️ 보통 신뢰도로 예측되었습니다.")
+            st.warning("⚠️ Predicted with moderate confidence.")
         else:
-            st.error("❌ 낮은 신뢰도입니다. 다른 이미지를 시도해보세요.")
+            st.error("❌ Low confidence. Try a different image.")
 
-        # --- 피드백 섹션 ---
+        # --- Feedback Section ---
         st.markdown("---")
-        st.subheader("🤔 이 예측을 데이터셋에 추가할까요?")
+        st.subheader("🤔 Add this prediction to the dataset?")
 
         if not st.session_state.feedback_submitted:
             col_feedback_1, col_feedback_2 = st.columns(2)
 
-            if col_feedback_1.button(f"👍 네, '{prediction}'이 맞습니다."):
+            if col_feedback_1.button(f"👍 Yes, '{prediction}' is correct."):
                 try:
-                    # FastAPI에 피드백 데이터 전송
+                    # Send feedback data to FastAPI
                     feedback_data = {
                         "pixels": pixels,
                         "label": prediction
@@ -280,27 +280,27 @@ if st.session_state.prediction is not None:
                         st.success(result["message"])
                         
                         if result.get("triggered"):
-                            st.info("🚀 GitHub Actions에서 모델 재훈련이 진행됩니다!")
+                            st.info("🚀 Model retraining is in progress in GitHub Actions!")
                         
                         st.session_state.feedback_submitted = True
                         st.rerun()
                     else:
-                        st.error(f"피드백 저장 실패: {response.status_code}")
+                        st.error(f"Feedback save failed: {response.status_code}")
                         
                 except Exception as e:
-                    st.error(f"피드백 저장 중 오류 발생: {e}")
+                    st.error(f"Error occurred while saving feedback: {e}")
 
-            if col_feedback_2.button("👎 아니요, 틀렸습니다."):
+            if col_feedback_2.button("👎 No, it's incorrect."):
                 st.session_state.feedback_submitted = True
                 st.session_state.feedback_mode = True
                 st.rerun()
 
         elif st.session_state.feedback_mode:
-            correct_label = st.text_input("정확한 숫자를 입력해주세요:")
-            if st.button("피드백 제출"):
+            correct_label = st.text_input("Please enter the correct digit:")
+            if st.button("Submit Feedback"):
                 if correct_label.isdigit() and 0 <= int(correct_label) <= 9:
                     try:
-                        # FastAPI에 피드백 데이터 전송
+                        # Send feedback data to FastAPI
                         feedback_data = {
                             "pixels": pixels,
                             "label": int(correct_label)
@@ -317,41 +317,41 @@ if st.session_state.prediction is not None:
                             st.success(result["message"])
                             
                             if result.get("triggered"):
-                                st.info("🚀 GitHub Actions에서 모델 재훈련이 진행됩니다!")
+                                st.info("🚀 Model retraining is in progress in GitHub Actions!")
                             
                             st.session_state.feedback_submitted = True
                             st.session_state.feedback_mode = False
                             st.rerun()
                         else:
-                            st.error(f"피드백 저장 실패: {response.status_code}")
+                            st.error(f"Feedback save failed: {response.status_code}")
                             
                     except Exception as e:
-                        st.error(f"피드백 저장 중 오류 발생: {e}")
+                        st.error(f"Error occurred while saving feedback: {e}")
                 else:
-                    st.warning("0에서 9 사이의 숫자를 입력해주세요.")
+                    st.warning("Please enter a digit between 0 and 9.")
         
         else: # Feedback has been submitted
-            st.info("피드백이 기록되었습니다. 감사합니다!")
+            st.info("Feedback has been recorded. Thank you!")
 
 # Display instructions if no file is uploaded
 if uploaded_file is None:
     with col2:
-        st.header("📋 사용 방법")
+        st.header("📋 How to Use")
         st.markdown("""
-        1. **이미지 업로드**: 왼쪽에서 숫자 이미지를 업로드하세요
-        2. **예측 실행**: "숫자 예측하기" 버튼을 클릭하세요
-        3. **결과 확인**: AI가 예측한 숫자와 신뢰도를 확인하세요
-        4. **피드백 제공**: 예측이 맞는지 피드백을 제공하세요
+        1. **Upload Image**: Upload a digit image on the left
+        2. **Run Prediction**: Click the "Predict Digit" button
+        3. **Check Result**: Review the AI's predicted digit and confidence
+        4. **Provide Feedback**: Give feedback on whether the prediction is correct
         """)
         
-        st.header("💡 팁")
+        st.header("💡 Tips")
         st.markdown("""
-        - **이미지 크기**: 28x28 픽셀에 가까운 이미지가 좋습니다
-        - **배경**: 흰 배경에 검은 숫자도 자동으로 변환됩니다
-        - **선명도**: 선명하고 명확한 숫자 이미지를 사용하세요
-        - **피드백**: 정확한 피드백을 제공하면 모델이 더 정확해집니다
+        - **Image Size**: Images close to 28x28 pixels work best
+        - **Background**: White background with black digits are automatically converted
+        - **Clarity**: Use clear and sharp digit images
+        - **Feedback**: Providing accurate feedback helps improve the model
         """)
 
-# 푸터
+# Footer
 st.markdown("---")
 st.markdown("🤖 Powered by CNN + FastAPI + Streamlit")
