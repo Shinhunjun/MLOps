@@ -40,9 +40,9 @@ jobs:
       - name: Check for new data
         id: check_data
         run: |
-          # new_data 폴더와 count.json 확인
+          # Check new_data folder and count.json
           if [ -d "FastAPI_Labs/new_data" ] && [ -f "FastAPI_Labs/new_data/count.json" ]; then
-            # count.json에서 현재 sub_set 확인 (이전 배치 데이터 사용)
+            # Check current sub_set from count.json (use previous batch data)
             SUB_SET_COUNT=$(python3 -c "import json; data=json.load(open('FastAPI_Labs/new_data/count.json')); print(data['sub_set_count']-1)")
             SUB_SET_DIR="FastAPI_Labs/new_data/sub_set_${SUB_SET_COUNT}"
             
@@ -96,6 +96,6 @@ jobs:
       - name: Notify completion
         if: steps.check_data.outputs.data_exists == 'true'
         run: |
-          echo "✅ 모델 재훈련이 완료되었습니다!"
-          echo "📝 로컬 서버를 재시작하거나 '모델 자동 업데이트' 버튼을 클릭하세요."
-          echo "🔄 또는 10분 후 자동 업데이터가 새로운 모델을 로드합니다."
+          echo "✅ Model retraining completed!"
+          echo "📝 Please restart the local server or click the 'Auto Update Model' button."
+          echo "🔄 Or the auto updater will load the new model in 10 minutes."
