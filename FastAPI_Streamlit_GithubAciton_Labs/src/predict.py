@@ -73,7 +73,7 @@ def reload_models():
             print("✅ Git pull completed! (including archived_data)")
             
             # Check if new_data folder is empty (after GitHub Actions completion)
-            new_data_path = os.path.join(repo_root, "FastAPI_Labs", "new_data")
+            new_data_path = os.path.join(repo_root, "FastAPI_Streamlit_GithubAciton_Labs", "new_data")
             if os.path.exists(new_data_path) and not os.listdir(new_data_path):
                 print("📁 new_data folder is empty. (GitHub Actions completed)")
             elif os.path.exists(new_data_path):

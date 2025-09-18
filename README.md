@@ -185,10 +185,10 @@ git clone <repository-url>
 cd MLOps
 
 # Install dependencies
-pip install -r FastAPI_Labs/requirements.txt
+pip install -r FastAPI_Streamlit_GithubAciton_Labs/requirements.txt
 
 # Start all services
-cd FastAPI_Labs
+cd FastAPI_Streamlit_GithubAciton_Labs
 ./start_servers.sh
 ```
 
@@ -196,11 +196,11 @@ cd FastAPI_Labs
 
 ```bash
 # Terminal 1: Start FastAPI + Auto Updater
-cd FastAPI_Labs
+cd FastAPI_Streamlit_GithubAciton_Labs
 python auto_model_updater.py &
 
 # Terminal 2: Start Streamlit
-cd FastAPI_Labs
+cd FastAPI_Streamlit_GithubAciton_Labs
 streamlit run streamlit_app.py --server.port 8501
 ```
 

@@ -35,16 +35,16 @@ jobs:
           python-version: "3.11" # Based on the user's venv
 
       - name: Install dependencies
-        run: pip install -r FastAPI_Labs/requirements.txt
+        run: pip install -r FastAPI_Streamlit_GithubAciton_Labs/requirements.txt
 
       - name: Check for new data
         id: check_data
         run: |
           # Check new_data folder and count.json
-          if [ -d "FastAPI_Labs/new_data" ] && [ -f "FastAPI_Labs/new_data/count.json" ]; then
+          if [ -d "FastAPI_Streamlit_GithubAciton_Labs/new_data" ] && [ -f "FastAPI_Streamlit_GithubAciton_Labs/new_data/count.json" ]; then
             # Check current sub_set from count.json (use previous batch data)
-            SUB_SET_COUNT=$(python3 -c "import json; data=json.load(open('FastAPI_Labs/new_data/count.json')); print(data['sub_set_count']-1)")
-            SUB_SET_DIR="FastAPI_Labs/new_data/sub_set_${SUB_SET_COUNT}"
+            SUB_SET_COUNT=$(python3 -c "import json; data=json.load(open('FastAPI_Streamlit_GithubAciton_Labs/new_data/count.json')); print(data['sub_set_count']-1)")
+            SUB_SET_DIR="FastAPI_Streamlit_GithubAciton_Labs/new_data/sub_set_${SUB_SET_COUNT}"
             
             if [ -d "$SUB_SET_DIR" ] && [ "$(ls -A "$SUB_SET_DIR")" ]; then
               echo "data_exists=true" >> $GITHUB_OUTPUT
@@ -74,7 +74,7 @@ jobs:
       - name: Run model retraining
         if: steps.check_data.outputs.data_exists == 'true'
         run: |
-          cd FastAPI_Labs
+          cd FastAPI_Streamlit_GithubAciton_Labs
           python src/retrain_with_new_data.py
 
       - name: Commit and push changes
