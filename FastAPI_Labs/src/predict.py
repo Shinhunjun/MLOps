@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import models
+import os
 
 # 모델 로딩을 위한 전역 변수
 _cnn_model = None
@@ -11,11 +12,40 @@ def load_models():
     
     if _cnn_model is None:
         try:
-            _cnn_model = models.load_model("../model/cnn_mnist_model.h5")
-            print("CNN 모델이 로드되었습니다.")
+            # 최신 모델 파일 찾기
+            model_path = find_latest_model()
+            if model_path:
+                _cnn_model = models.load_model(model_path)
+                print(f"CNN 모델이 로드되었습니다: {os.path.basename(model_path)}")
+            else:
+                print("❌ 모델 파일을 찾을 수 없습니다.")
+                _cnn_model = None
         except Exception as e:
             print(f"CNN 모델 로드 실패: {e}")
             _cnn_model = None
+
+def find_latest_model():
+    """가장 최신의 모델 파일을 찾습니다."""
+    import glob
+    import os
+    
+    model_dir = "../model"
+    if not os.path.exists(model_dir):
+        return None
+    
+    # cnn_mnist_model_*.h5 패턴의 파일들 찾기
+    model_files = glob.glob(os.path.join(model_dir, "cnn_mnist_model_*.h5"))
+    
+    if not model_files:
+        # 기존 파일명도 확인
+        old_model = os.path.join(model_dir, "cnn_mnist_model.h5")
+        if os.path.exists(old_model):
+            return old_model
+        return None
+    
+    # 타임스탬프로 정렬하여 가장 최신 파일 반환
+    model_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]), reverse=True)
+    return model_files[0]
 
 def reload_models():
     """CNN 모델을 강제로 다시 로드합니다."""

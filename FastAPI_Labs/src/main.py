@@ -6,6 +6,25 @@ from predict import predict_with_cnn, reload_models
 
 app = FastAPI()
 
+# 앱 시작 시 모델 로드
+@app.on_event("startup")
+async def startup_event():
+    # 시작 시 Git pull 실행
+    try:
+        import subprocess
+        print("🔄 시작 시 최신 모델을 가져오는 중...")
+        result = subprocess.run(['git', 'pull'], capture_output=True, text=True, cwd='..')
+        if result.returncode == 0:
+            print("✅ Git pull 성공")
+        else:
+            print(f"⚠️ Git pull 실패: {result.stderr}")
+    except Exception as e:
+        print(f"⚠️ Git pull 중 오류: {e}")
+    
+    # 모델 로드
+    from predict import load_models
+    load_models()
+
 class MNISTData(BaseModel):
     pixels: list[float]  # 784개 픽셀 값 (28x28 = 784)
     
@@ -24,6 +43,34 @@ class MNISTResponse(BaseModel):
 @app.get("/", status_code=status.HTTP_200_OK)
 async def health_ping():
     return {"status": "healthy"}
+
+@app.get("/model-info")
+async def get_model_info():
+    """현재 로드된 모델 정보를 반환합니다."""
+    try:
+        from predict import find_latest_model
+        model_path = find_latest_model()
+        if model_path:
+            import os
+            model_name = os.path.basename(model_path)
+            return {
+                "model_name": model_name,
+                "model_path": model_path,
+                "status": "loaded"
+            }
+        else:
+            return {
+                "model_name": "No model found",
+                "model_path": None,
+                "status": "not_found"
+            }
+    except Exception as e:
+        return {
+            "model_name": "Error",
+            "model_path": None,
+            "status": "error",
+            "error": str(e)
+        }
 
 @app.post("/predict", response_model=MNISTResponse)
 async def predict_mnist(mnist_data: MNISTData):
@@ -67,6 +114,36 @@ async def reload_models_endpoint():
         return {"status": "success", "message": "모델이 성공적으로 다시 로드되었습니다."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"모델 리로드 실패: {str(e)}")
+
+@app.post("/auto-update-model")
+async def auto_update_model():
+    """자동으로 모델을 업데이트합니다 (GitHub Actions 완료 후 호출)."""
+    try:
+        import subprocess
+        
+        # 1. Git pull로 최신 모델 가져오기
+        pull_result = subprocess.run(['git', 'pull'], capture_output=True, text=True, cwd='..')
+        
+        if pull_result.returncode != 0:
+            return {"message": f"Git pull 실패: {pull_result.stderr}", "status": "error"}
+        
+        # 2. 최신 모델 파일 확인
+        from predict import find_latest_model
+        model_path = find_latest_model()
+        if not model_path:
+            return {"message": "모델 파일을 찾을 수 없습니다.", "status": "error"}
+        
+        # 3. 모델 다시 로드
+        reload_models()
+        
+        return {
+            "message": "모델이 자동으로 업데이트되었습니다!",
+            "git_output": pull_result.stdout,
+            "status": "success"
+        }
+        
+    except Exception as e:
+        return {"message": f"자동 업데이트 중 오류 발생: {str(e)}", "status": "error"}
 
 class FeedbackData(BaseModel):
     pixels: list[float]  # 784개 픽셀 값

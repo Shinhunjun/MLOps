@@ -102,6 +102,34 @@ api_url = st.sidebar.text_input(
     help="FastAPI CNN 서버의 엔드포인트 URL"
 )
 
+st.sidebar.markdown("---")
+st.sidebar.header("🔄 모델 관리")
+
+if st.sidebar.button("🔄 모델 자동 업데이트", use_container_width=True):
+    with st.spinner("최신 모델을 가져오는 중..."):
+        try:
+            response = requests.post("http://localhost:8000/auto-update-model", timeout=30)
+            if response.status_code == 200:
+                result = response.json()
+                st.sidebar.success(result["message"])
+                st.rerun()
+            else:
+                st.sidebar.error(f"업데이트 실패: {response.status_code}")
+        except Exception as e:
+            st.sidebar.error(f"업데이트 중 오류: {e}")
+
+if st.sidebar.button("🔄 모델 리로드", use_container_width=True):
+    with st.spinner("모델을 리로드하는 중..."):
+        try:
+            response = requests.post("http://localhost:8000/reload-models", timeout=30)
+            if response.status_code == 200:
+                result = response.json()
+                st.sidebar.success(result["message"])
+            else:
+                st.sidebar.error(f"리로드 실패: {response.status_code}")
+        except Exception as e:
+            st.sidebar.error(f"리로드 중 오류: {e}")
+
 
 # 메인 컨텐츠
 col1, col2 = st.columns([1, 1])
@@ -204,7 +232,19 @@ if st.session_state.prediction is not None:
         """, unsafe_allow_html=True)
         
         st.metric("신뢰도", f"{confidence:.2%}")
-        st.info(f"🤖 사용된 모델: **CNN (FastAPI)**")
+        
+        # 모델 정보 표시
+        try:
+            import requests
+            response = requests.get("http://localhost:8000/model-info", timeout=5)
+            if response.status_code == 200:
+                model_info = response.json()
+                st.info(f"🤖 사용된 모델: **{model_info.get('model_name', 'CNN (FastAPI)')}**")
+            else:
+                st.info(f"🤖 사용된 모델: **CNN (FastAPI)**")
+        except:
+            st.info(f"🤖 사용된 모델: **CNN (FastAPI)**")
+        
         st.progress(confidence)
         
         if confidence > 0.8:

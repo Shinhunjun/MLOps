@@ -97,8 +97,19 @@ def save_cnn_model(model, filepath="model/cnn_mnist_model.h5"):
     
     Args:
         model (keras.Model): 저장할 모델
-        filepath (str): 저장 경로
+        filepath (str): 저장 경로 (기본값 사용 시 타임스탬프 자동 추가)
     """
+    import time
+    import os
+    
+    # 기본 파일명인 경우 타임스탬프 추가
+    if filepath == "model/cnn_mnist_model.h5":
+        timestamp = int(time.time())
+        filepath = f"model/cnn_mnist_model_{timestamp}.h5"
+    
+    # 디렉토리 생성
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    
     model.save(filepath)
     print(f"CNN 모델이 {filepath}에 저장되었습니다.")
 

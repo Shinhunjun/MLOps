@@ -156,12 +156,46 @@ def retrain_cnn(X_original, y_original, X_new, y_new):
     test_loss, test_accuracy = cnn_model.evaluate(X_test_cnn, y_test, verbose=0)
     print(f"✅ CNN 재훈련 완료! 정확도: {test_accuracy:.4f}, 시간: {training_time:.2f}초")
     
-    # 모델 저장
-    cnn_model.save("model/cnn_mnist_model.h5")
-    print("💾 CNN 모델이 저장되었습니다.")
+    # 모델 저장 (타임스탬프 포함)
+    timestamp = int(time.time())
+    model_filename = f"model/cnn_mnist_model_{timestamp}.h5"
+    cnn_model.save(model_filename)
+    print(f"💾 CNN 모델이 저장되었습니다: {model_filename}")
+    
+    # 기존 모델 파일들 정리 (최신 3개만 유지)
+    cleanup_old_models(timestamp)
     
     return cnn_model
 
+def cleanup_old_models(current_timestamp):
+    """기존 모델 파일들을 정리하여 최신 3개만 유지"""
+    import glob
+    import os
+    
+    model_dir = "model"
+    if not os.path.exists(model_dir):
+        return
+    
+    # cnn_mnist_model_*.h5 패턴의 파일들 찾기
+    model_files = glob.glob(os.path.join(model_dir, "cnn_mnist_model_*.h5"))
+    
+    if len(model_files) <= 3:
+        print("📁 모델 파일 개수가 3개 이하입니다. 정리하지 않습니다.")
+        return
+    
+    # 타임스탬프로 정렬 (오래된 것부터)
+    model_files.sort(key=lambda x: int(x.split('_')[-1].split('.')[0]))
+    
+    # 오래된 파일들 삭제 (최신 3개 제외)
+    files_to_delete = model_files[:-3]
+    for file_path in files_to_delete:
+        try:
+            os.remove(file_path)
+            print(f"🗑️ 오래된 모델 파일 삭제: {os.path.basename(file_path)}")
+        except Exception as e:
+            print(f"⚠️ 파일 삭제 실패 {file_path}: {e}")
+    
+    print(f"📁 모델 파일 정리 완료. 현재 {len(model_files) - len(files_to_delete)}개 파일 유지")
 
 def main():
     """메인 함수"""

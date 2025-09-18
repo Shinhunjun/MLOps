@@ -97,4 +97,5 @@ jobs:
         if: steps.check_data.outputs.data_exists == 'true'
         run: |
           echo "✅ 모델 재훈련이 완료되었습니다!"
-          echo "📝 로컬에서 FastAPI 서버를 재시작하여 새로운 모델을 로드하세요."
+          echo "📝 로컬 서버를 재시작하거나 '모델 자동 업데이트' 버튼을 클릭하세요."
+          echo "🔄 또는 10분 후 자동 업데이터가 새로운 모델을 로드합니다."
