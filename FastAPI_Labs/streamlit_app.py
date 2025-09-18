@@ -129,17 +129,13 @@ with col1:
         image = Image.open(uploaded_file)
         st.image(image, caption="업로드된 이미지", use_container_width=True)
         
-        # 이미지 전처리
-        st.subheader("🔄 이미지 전처리")
-        
+        # 이미지 전처리 (백그라운드에서 실행)
         # 그레이스케일 변환
         if image.mode != 'L':
             image = image.convert('L')
-            st.info("이미지를 그레이스케일로 변환했습니다.")
         
         # 28x28 크기로 리사이즈
         image = image.resize((28, 28), Image.Resampling.LANCZOS)
-        st.info("이미지를 28x28 크기로 리사이즈했습니다.")
         
         # 픽셀 값 추출 및 전처리
         try:
@@ -151,24 +147,16 @@ with col1:
             mean_pixel = np.mean(pixels)
             if mean_pixel > 0.5:
                 pixels = 1.0 - pixels
-                st.info("💡 흰 배경 감지: 이미지를 반전하여 MNIST 형식으로 변환했습니다.")
-            else:
-                st.info("💡 검은 배경 감지: 이미지가 이미 MNIST 형식입니다.")
             
             pixels = np.nan_to_num(pixels, nan=0.0, posinf=1.0, neginf=0.0)
             pixels = np.clip(pixels, 0.0, 1.0)
             pixels = pixels.tolist()
-            
-            st.info(f"전처리 완료: {min(pixels):.3f} ~ {max(pixels):.3f}")
             
         except Exception as e:
             st.error(f"전처리 중 오류 발생: {str(e)}")
             pixels = None
 
         if pixels:
-            # 픽셀 값 시각화
-            st.subheader("📊 픽셀 값 분포")
-            st.bar_chart(pixels[:784])
             
             # 예측 버튼
             if st.button("🔍 숫자 예측하기", type="primary"):
@@ -311,9 +299,9 @@ if uploaded_file is None:
         st.header("📋 사용 방법")
         st.markdown("""
         1. **이미지 업로드**: 왼쪽에서 숫자 이미지를 업로드하세요
-        2. **자동 전처리**: 이미지가 28x28 그레이스케일로 변환됩니다
-        3. **예측 실행**: "숫자 예측하기" 버튼을 클릭하세요
-        4. **결과 확인**: AI가 예측한 숫자와 신뢰도를 확인하세요
+        2. **예측 실행**: "숫자 예측하기" 버튼을 클릭하세요
+        3. **결과 확인**: AI가 예측한 숫자와 신뢰도를 확인하세요
+        4. **피드백 제공**: 예측이 맞는지 피드백을 제공하세요
         """)
         
         st.header("💡 팁")
@@ -321,6 +309,7 @@ if uploaded_file is None:
         - **이미지 크기**: 28x28 픽셀에 가까운 이미지가 좋습니다
         - **배경**: 흰 배경에 검은 숫자도 자동으로 변환됩니다
         - **선명도**: 선명하고 명확한 숫자 이미지를 사용하세요
+        - **피드백**: 정확한 피드백을 제공하면 모델이 더 정확해집니다
         """)
 
 # 푸터
