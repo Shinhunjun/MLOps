@@ -1,19 +1,41 @@
-# 🍷 Wine Quality Prediction Pipeline
+# 🍷 Wine Quality Prediction MLOps Pipeline
 
-An MLOps pipeline for predicting wine quality using the UCI Wine Quality Dataset with Apache Airflow orchestration.
+A comprehensive MLOps pipeline for predicting wine quality using ensemble machine learning models with Apache Airflow orchestration.
 
-## 🎯 Overview
+## 🎯 Project Overview
 
-This project implements a machine learning pipeline that:
+This project demonstrates a complete MLOps workflow that:
 
-- **Predicts wine quality** (0-10 scale) using ensemble regression models
-- **Uses real-world data** from UCI Machine Learning Repository
+- **Predicts wine quality** (3-9 scale) using ensemble regression models
+- **Uses real-world data** from UCI Wine Quality Dataset (local CSV files)
 - **Handles both red and white wines** with comprehensive feature analysis
-- **Provides business insights** for wine production and quality control
+- **Automates the entire ML pipeline** from data loading to model evaluation
+- **Provides production-ready monitoring** with Airflow UI and email notifications
+
+## 🏗️ Architecture
+
+### **Core Components**
+
+1. **Apache Airflow DAG** (`dags/main.py`)
+
+   - Orchestrates the entire ML pipeline
+   - Manages task dependencies and execution
+   - Provides monitoring and error handling
+
+2. **Machine Learning Logic** (`dags/src/model_development.py`)
+
+   - Data loading from local CSV files
+   - Feature preprocessing and scaling
+   - Ensemble model training (Random Forest, XGBoost, LightGBM, Linear Regression)
+   - Model evaluation and performance metrics
+
+3. **Data Storage** (`dags/data/`)
+   - `winequality-red.csv` - Red wine dataset (1,599 samples)
+   - `winequality-white.csv` - White wine dataset (4,898 samples)
 
 ## 📊 Dataset Information
 
-### **Source**: UCI Machine Learning Repository
+### **Source**: UCI Machine Learning Repository (Local CSV Files)
 
 - **Red Wine**: 1,599 samples
 - **White Wine**: 4,898 samples
@@ -34,131 +56,177 @@ This project implements a machine learning pipeline that:
 11. **Alcohol** - Alcohol content (%)
 12. **Wine type** - Red (1) or White (0)
 
-### **Target**: Wine Quality (0-10 scale)
+### **Target**: Wine Quality (3-9 scale)
 
-- **3**: Poor quality
-- **4-6**: Average quality
+- **3-4**: Poor quality
+- **5-6**: Average quality
 - **7-8**: Good quality
-- **9-10**: Excellent quality
+- **9**: Excellent quality
 
 ## 🤖 Model Architecture
 
-### **Ensemble Regression Model**
+### **Ensemble Regression Models**
 
 - **Random Forest**: Robust baseline with feature importance
 - **XGBoost**: Gradient boosting for complex patterns
 - **LightGBM**: Fast gradient boosting with categorical support
 - **Linear Regression**: Linear baseline model
-- **Voting Regressor**: Soft voting for final predictions
 
 ### **Evaluation Metrics**
 
 - **R² Score**: Coefficient of determination
-- **RMSE**: Root Mean Square Error
-- **MAE**: Mean Absolute Error
-- **Cross-validation**: 5-fold CV for robust evaluation
+- **MSE**: Mean Squared Error
+- **Cross-validation**: Built-in model evaluation
 
 ## 🚀 Quick Start
 
-### 1. **Install Dependencies**
+### **Prerequisites**
+
+- Python 3.11+
+- Apache Airflow
+- Required Python packages (see `requirements.txt`)
+
+### **1. Install Dependencies**
 
 ```bash
+cd /Users/hunjunsin/Desktop/Jun/MLOps/Airflow_Labs/Lab_2_Wine
 pip install -r requirements.txt
 ```
 
-### 2. **Setup Airflow**
+### **2. Setup Airflow**
 
 ```bash
 # Initialize Airflow database
-airflow db init
+airflow db migrate
 
-# Create admin user
-airflow users create \
-  --username admin \
-  --firstname Admin \
-  --lastname User \
-  --role Admin \
-  --email admin@example.com
+# Start Airflow in standalone mode (creates admin user automatically)
+airflow standalone
 ```
 
-### 3. **Start Airflow Services**
+### **3. Access Airflow UI**
 
-```bash
-# Terminal 1: Start webserver
-airflow webserver --port 8080
+- **URL**: http://localhost:8080
+- **Username**: `admin`
+- **Password**: Check terminal output for generated password
 
-# Terminal 2: Start scheduler
-airflow scheduler
+### **4. Run the Pipeline**
+
+1. Navigate to the Airflow UI
+2. Find the "Wine_Quality_Prediction" DAG
+3. Toggle the switch to enable the DAG
+4. Click the "Play" button to trigger a manual run
+5. Monitor the execution in real-time
+
+## 📋 Pipeline Tasks
+
+### **1. start_pipeline** (BashOperator)
+
+- Displays pipeline start message
+- Validates environment setup
+
+### **2. load_wine_data** (PythonOperator)
+
+- Loads red and white wine data from local CSV files
+- Combines datasets and adds wine type encoding
+- Saves processed data to pickle file
+
+### **3. preprocess_wine_data** (PythonOperator)
+
+- Separates features and target variable
+- Splits data into train/test sets with stratification
+- Applies StandardScaler for feature normalization
+- Saves preprocessed data
+
+### **4. build_save_wine_model** (PythonOperator)
+
+- Trains ensemble of regression models
+- Saves trained models to pickle file
+- Performs cross-validation evaluation
+
+### **5. load_evaluate_wine_model** (PythonOperator)
+
+- Loads trained models and test data
+- Evaluates each model's performance
+- Displays comprehensive performance metrics
+
+### **6. end_pipeline** (BashOperator)
+
+- Displays pipeline completion message
+- Triggers success email notification
+
+## 🔧 Technical Implementation
+
+### **Data Loading Strategy**
+
+```python
+# Local CSV file loading (no network dependency)
+data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+red_wine_path = os.path.join(data_dir, "winequality-red.csv")
+white_wine_path = os.path.join(data_dir, "winequality-white.csv")
 ```
 
-### 4. **Access Airflow UI**
+### **Ensemble Model Training**
 
-Open your browser and navigate to `http://localhost:8080`
+```python
+models = {
+    'RandomForest': RandomForestRegressor(random_state=42),
+    'XGBoost': XGBRegressor(random_state=42),
+    'LightGBM': LGBMRegressor(random_state=42, verbose=-1),
+    'LinearRegression': LinearRegression()
+}
+```
 
-## 📈 Business Applications
+### **Performance Evaluation**
 
-### **Wine Production**
+```python
+for name, model in trained_models.items():
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+    results[name] = {"mse": mse, "r2": r2}
+```
 
-- **Quality Control**: Predict quality before bottling
-- **Process Optimization**: Identify key factors affecting quality
-- **Cost Reduction**: Minimize quality issues early
-
-### **Wine Industry**
-
-- **Market Analysis**: Understand quality trends
-- **Product Development**: Optimize wine characteristics
-- **Competitive Advantage**: Data-driven quality improvement
-
-## 🔧 Pipeline Features
-
-### **1. Automated Data Loading**
-
-- Direct download from UCI repository
-- Fallback to synthetic data if download fails
-- Data quality validation
-
-### **2. Advanced Preprocessing**
-
-- Feature scaling with StandardScaler
-- Train/test split with stratification
-- Comprehensive data validation
-
-### **3. Ensemble Learning**
-
-- Multiple algorithms for robust predictions
-- Feature importance analysis
-- Cross-validation for reliable performance
-
-### **4. Comprehensive Evaluation**
-
-- Multiple regression metrics
-- Quality distribution analysis
-- Feature importance ranking
-
-## 📊 Expected Performance
+## 📈 Expected Performance
 
 ### **Typical Results**:
 
-- **R² Score**: 0.65-0.75
-- **RMSE**: 0.6-0.8
-- **MAE**: 0.4-0.6
+- **Random Forest R²**: 0.65-0.75
+- **XGBoost R²**: 0.70-0.80
+- **LightGBM R²**: 0.68-0.78
+- **Linear Regression R²**: 0.60-0.70
 
 ### **Key Quality Factors**:
 
-1. **Alcohol content** - Most important
-2. **Volatile acidity** - Negative correlation
-3. **Sulphates** - Positive correlation
-4. **Citric acid** - Positive correlation
-5. **Density** - Negative correlation
+1. **Alcohol content** - Most important predictor
+2. **Volatile acidity** - Strong negative correlation
+3. **Sulphates** - Positive correlation with quality
+4. **Citric acid** - Moderate positive correlation
+5. **Density** - Negative correlation with quality
+
+## 🚨 Monitoring & Alerts
+
+### **Airflow UI Monitoring**
+
+- **Real-time task status**: Green (success), Blue (running), Red (failed)
+- **Detailed logs**: Click on any task to view execution logs
+- **Task dependencies**: Visual graph showing task relationships
+- **Performance metrics**: Execution time and resource usage
+
+### **Email Notifications**
+
+- **Success notifications**: Pipeline completion with performance summary
+- **Failure alerts**: Detailed error messages and troubleshooting guidance
+- **Configurable recipients**: Update email addresses in DAG configuration
 
 ## 🛠️ Customization Options
 
 ### **1. Different Datasets**
 
-```python
-# Replace UCI URLs with your data source
-red_wine_url = "your_red_wine_data.csv"
-white_wine_url = "your_white_wine_data.csv"
+Replace CSV files in `dags/data/` directory:
+
+```bash
+# Add your own wine data
+cp your_wine_data.csv dags/data/winequality-custom.csv
 ```
 
 ### **2. Additional Features**
@@ -176,62 +244,89 @@ df['sugar_to_acid_ratio'] = df['residual sugar'] / df['fixed acidity']
 from sklearn.svm import SVR
 from sklearn.neural_network import MLPRegressor
 
-# Add to VotingRegressor
-('svr', SVR()),
-('mlp', MLPRegressor(hidden_layer_sizes=(100, 50)))
+models = {
+    'RandomForest': RandomForestRegressor(random_state=42),
+    'XGBoost': XGBRegressor(random_state=42),
+    'LightGBM': LGBMRegressor(random_state=42, verbose=-1),
+    'LinearRegression': LinearRegression(),
+    'SVR': SVR(),
+    'MLP': MLPRegressor(hidden_layer_sizes=(100, 50))
+}
 ```
-
-## 📋 DAG Tasks
-
-1. **load_wine_data**: Download wine dataset from UCI
-2. **wine_data_quality_check**: Validate data quality
-3. **preprocess_wine_data**: Scale features and split data
-4. **separate_data_outputs**: Prepare data for training
-5. **train_wine_quality_model**: Train ensemble model
-6. **evaluate_wine_model**: Evaluate model performance
-7. **wine_model_validation**: Validate model quality
-8. **generate_wine_quality_report**: Generate analysis report
-
-## 🚨 Monitoring & Alerts
-
-### **Email Notifications**
-
-- **Success**: Model training completion with performance metrics
-- **Failure**: Error details and troubleshooting guidance
-
-### **Airflow UI**
-
-- Real-time task execution status
-- Detailed logs and error messages
-- Performance metrics visualization
 
 ## 🔮 Future Enhancements
 
 ### **1. Real-time Predictions**
 
-- API endpoint for live quality scoring
-- Batch prediction for wine batches
+- FastAPI endpoint for live quality scoring
+- Batch prediction API for wine batches
+- Model versioning and A/B testing
 
 ### **2. Advanced Analytics**
 
-- Wine quality trend analysis
+- Wine quality trend analysis over time
 - Seasonal quality patterns
 - Regional quality differences
+- Feature importance visualization
 
 ### **3. Model Explainability**
 
 - SHAP values for individual predictions
 - Feature interaction analysis
-- Quality factor importance
+- Quality factor importance ranking
+- Model interpretability reports
+
+### **4. Data Pipeline Enhancements**
+
+- Automated data validation
+- Data quality monitoring
+- Feature drift detection
+- Model performance monitoring
 
 ## 📚 Learning Outcomes
 
 This project demonstrates:
 
-- **Real-world MLOps**: Production-ready pipeline with Airflow
-- **Data Science**: UCI dataset analysis and preprocessing
+- **MLOps Best Practices**: Production-ready pipeline with Airflow
+- **Data Science**: Real-world dataset analysis and preprocessing
 - **Machine Learning**: Ensemble regression techniques
 - **Business Integration**: Wine industry applications
+- **Monitoring**: Comprehensive pipeline monitoring and alerting
+- **Scalability**: Modular design for easy extension
+
+## 🐛 Troubleshooting
+
+### **Common Issues**
+
+1. **DAG not appearing in UI**
+
+   - Check file permissions
+   - Verify Python syntax
+   - Check Airflow logs
+
+2. **Task failures**
+
+   - Check task logs in Airflow UI
+   - Verify data file paths
+   - Check Python dependencies
+
+3. **Import errors**
+   - Ensure all packages are installed
+   - Check Python path configuration
+   - Verify file structure
+
+### **Debug Commands**
+
+```bash
+# Test DAG syntax
+python dags/main.py
+
+# Test individual functions
+python -c "from dags.src.model_development import load_data; load_data()"
+
+# Check Airflow configuration
+airflow config list
+```
 
 ## 🤝 Contributing
 
@@ -240,7 +335,8 @@ Feel free to contribute improvements:
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Submit a pull request
+4. Test thoroughly
+5. Submit a pull request
 
 ## 📄 License
 
@@ -248,4 +344,4 @@ This project is licensed under the MIT License.
 
 ---
 
-**🍷 This pipeline showcases how MLOps can be applied to the wine industry for quality prediction and process optimization!** 🚀
+**🍷 This MLOps pipeline showcases how to build production-ready machine learning systems for the wine industry, combining data science, machine learning, and DevOps best practices!** 🚀
