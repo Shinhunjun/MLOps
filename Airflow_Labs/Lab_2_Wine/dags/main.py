@@ -25,7 +25,7 @@ from src.model_development import (
 # ---------- Default args ----------
 default_args = {
     "start_date": pendulum.datetime(2024, 1, 1, tz="UTC"),
-    "retries": 1,
+    "retries": 0,
     "retry_delay": pendulum.duration(minutes=5),
 }
 
