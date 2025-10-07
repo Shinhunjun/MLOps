@@ -2,12 +2,17 @@
 from __future__ import annotations
 
 import pendulum
+import sys
+import os
 from airflow import DAG
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.smtp.operators.smtp import EmailOperator
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.task.trigger_rule import TriggerRule
+
+# Add the current directory to Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from src.model_development import (
     load_data,
@@ -29,7 +34,7 @@ dag = DAG(
     dag_id="Wine_Quality_Prediction",
     default_args=default_args,
     description="Wine Quality Prediction Pipeline using UCI Wine Dataset",
-    schedule="@daily",
+    schedule=None,
     catchup=False,
     tags=["wine-quality", "regression", "uci-dataset"],
     owner_links={"Wine Expert": "https://github.com/your-org/wine-quality-mlops/"},
