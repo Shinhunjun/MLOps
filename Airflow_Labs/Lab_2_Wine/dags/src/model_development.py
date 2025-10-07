@@ -195,6 +195,12 @@ def build_model(file_path: str, filename: str) -> str:
         ]
     )
     
+    # Train individual models first (for feature importance)
+    rf_model.fit(X_train, y_train)
+    xgb_model.fit(X_train, y_train)
+    lgb_model.fit(X_train, y_train)
+    lr_model.fit(X_train, y_train)
+    
     # Train ensemble model
     ensemble_model.fit(X_train, y_train)
     
