@@ -7,7 +7,7 @@ import os
 from airflow import DAG
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.providers.standard.operators.python import PythonOperator
-from airflow.providers.smtp.operators.smtp import EmailOperator
+# from airflow.providers.smtp.operators.smtp import EmailOperator  # Disabled due to SMTP SSL issues
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.task.trigger_rule import TriggerRule
 
@@ -133,59 +133,35 @@ model_validation = BashOperator(
     dag=dag,
 )
 
-# Success notification
-success_email = EmailOperator(
+# Success notification (using BashOperator instead of EmailOperator to avoid SMTP issues)
+success_email = BashOperator(
     task_id="send_wine_success_notification",
-    to="wine-team@company.com",
-    subject="🍷 Wine Quality Model Training Completed Successfully",
-    html_content="""
-    <h2>🍷 Wine Quality Prediction Model Training Completed</h2>
-    <p>The daily wine quality prediction model has been successfully trained and evaluated.</p>
-    
-    <h3>Model Performance Summary:</h3>
-    <ul>
-        <li><strong>Model Type:</strong> Ensemble Regression (RF + XGBoost + LightGBM + Linear)</li>
-        <li><strong>Dataset:</strong> UCI Wine Quality (Red + White wines)</li>
-        <li><strong>Training Date:</strong> Today</li>
-        <li><strong>Status:</strong> ✅ Success</li>
-    </ul>
-    
-    <h3>Key Features:</h3>
-    <ul>
-        <li>Fixed acidity, volatile acidity, citric acid</li>
-        <li>Residual sugar, chlorides, sulfur dioxide levels</li>
-        <li>Density, pH, sulphates, alcohol content</li>
-        <li>Wine type (red/white)</li>
-    </ul>
-    
-    <p>Please check the Airflow logs for detailed performance metrics and feature importance analysis.</p>
-    
-    <p>Best regards,<br>Wine Quality Team</p>
+    bash_command="""
+    echo "🍷 Wine Quality Prediction Model Training Completed Successfully!"
+    echo "📊 Model Type: Ensemble Regression (RF + XGBoost + LightGBM + Linear)"
+    echo "📊 Dataset: UCI Wine Quality (Red + White wines)"
+    echo "📊 Training Date: $(date)"
+    echo "✅ Status: Success"
+    echo "📧 Email notification disabled due to SMTP configuration issues"
+    echo "📋 Please check Airflow logs for detailed performance metrics"
     """,
+    doc_md="Log success notification instead of sending email",
     dag=dag,
 )
 
-# Failure notification
-failure_email = EmailOperator(
+# Failure notification (using BashOperator instead of EmailOperator to avoid SMTP issues)
+failure_email = BashOperator(
     task_id="send_wine_failure_notification",
-    to="wine-team@company.com",
-    subject="❌ Wine Quality Model Training Failed",
-    html_content="""
-    <h2>❌ Wine Quality Prediction Model Training Failed</h2>
-    <p>The daily wine quality prediction model training encountered an error.</p>
-    
-    <h3>Error Details:</h3>
-    <ul>
-        <li><strong>Failed Task:</strong> {{ task_instance.task_id }}</li>
-        <li><strong>Failure Date:</strong> {{ ds }}</li>
-        <li><strong>Status:</strong> ❌ Failed</li>
-    </ul>
-    
-    <p>Please check the Airflow logs for detailed error information and take appropriate action.</p>
-    
-    <p>Best regards,<br>Wine Quality Team</p>
+    bash_command="""
+    echo "❌ Wine Quality Prediction Model Training Failed!"
+    echo "📊 DAG: Wine_Quality_Prediction"
+    echo "📊 Status: Failed"
+    echo "📊 Time: $(date)"
+    echo "📧 Email notification disabled due to SMTP configuration issues"
+    echo "📋 Please check Airflow logs for detailed error information"
     """,
     trigger_rule=TriggerRule.ONE_FAILED,
+    doc_md="Log failure notification instead of sending email",
     dag=dag,
 )
 
