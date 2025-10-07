@@ -297,9 +297,9 @@ def load_model(file_path: str, filename: str) -> dict:
     print(pred_dist)
     
     return {
-        'test_r2': test_r2,
-        'test_rmse': test_rmse,
-        'test_mae': test_mae,
-        'predictions': y_pred,
-        'actual_quality': y_test
+        'test_r2': float(test_r2),
+        'test_rmse': float(test_rmse),
+        'test_mae': float(test_mae),
+        'quality_distribution': quality_dist.to_dict(),
+        'predicted_distribution': pred_dist.to_dict()
     }
