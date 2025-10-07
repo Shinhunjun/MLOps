@@ -14,8 +14,8 @@ import lightgbm as lgb
 import requests
 from io import StringIO
 
-WORKING_DIR = "/opt/airflow/working_data"
-MODEL_DIR = "/opt/airflow/model"
+WORKING_DIR = "/Users/hunjunsin/Desktop/Jun/MLOps/Airflow_Labs/Lab_2_Wine/working_data"
+MODEL_DIR = "/Users/hunjunsin/Desktop/Jun/MLOps/Airflow_Labs/Lab_2_Wine/model"
 os.makedirs(WORKING_DIR, exist_ok=True)
 os.makedirs(MODEL_DIR, exist_ok=True)
 
