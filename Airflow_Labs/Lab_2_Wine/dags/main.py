@@ -146,7 +146,7 @@ success_email = EmailOperator(
     <ul>
         <li><strong>Model Type:</strong> Ensemble Regression (RF + XGBoost + LightGBM + Linear)</li>
         <li><strong>Dataset:</strong> UCI Wine Quality (Red + White wines)</li>
-        <li><strong>Training Date:</strong> {{ ds }}</li>
+        <li><strong>Training Date:</strong> Today</li>
         <li><strong>Status:</strong> ✅ Success</li>
     </ul>
     
