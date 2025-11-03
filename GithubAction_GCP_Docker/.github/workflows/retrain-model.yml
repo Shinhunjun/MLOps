@@ -1,0 +1,125 @@
+name: Retrain MNIST Model
+
+on:
+  # Triggered by FastAPI when 10 feedback samples are collected
+  repository_dispatch:
+    types: [retrain-model]
+
+  # Manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      subset_id:
+        description: 'Subset ID to train with (e.g., sub_set_5)'
+        required: true
+        default: 'sub_set_0'
+      epochs:
+        description: 'Number of training epochs'
+        required: false
+        default: '5'
+
+env:
+  GCP_PROJECT_ID: mlops-compute-lab
+  GCP_REGION: us-central1
+  GCS_BUCKET: mlops-mnist-data
+  MODEL_NAME: mnist-cnn
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  retrain-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install tensorflow==2.15.0 keras==2.15.0 numpy==1.24.3 Pillow==10.0.1
+          pip install google-cloud-storage==2.14.0 google-cloud-aiplatform==1.38.1
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Determine subset ID
+        id: subset
+        run: |
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            SUBSET_ID="${{ github.event.client_payload.dataset_version }}"
+            EPOCHS="5"
+          else
+            SUBSET_ID="${{ github.event.inputs.subset_id }}"
+            EPOCHS="${{ github.event.inputs.epochs }}"
+          fi
+          echo "subset_id=$SUBSET_ID" >> $GITHUB_OUTPUT
+          echo "epochs=$EPOCHS" >> $GITHUB_OUTPUT
+          echo "Training with subset: $SUBSET_ID for $EPOCHS epochs"
+
+      - name: Retrain model
+        run: |
+          echo "🔄 Starting model retraining..."
+          echo "Subset: ${{ steps.subset.outputs.subset_id }}"
+          echo "Epochs: ${{ steps.subset.outputs.epochs }}"
+
+          python scripts/retrain_model.py \
+            --bucket=${{ env.GCS_BUCKET }} \
+            --subset=${{ steps.subset.outputs.subset_id }} \
+            --output-dir=./retrained_model \
+            --epochs=${{ steps.subset.outputs.epochs }}
+
+      - name: Convert to SavedModel format
+        run: |
+          echo "📦 Converting model to SavedModel format..."
+          # Model is already in SavedModel format from retrain_model.py
+          ls -la ./retrained_model/
+
+      - name: Upload model to Vertex AI
+        run: |
+          echo "🚀 Uploading model to Vertex AI Model Registry..."
+
+          python scripts/upload_to_vertex_ai.py \
+            --project-id=${{ env.GCP_PROJECT_ID }} \
+            --region=${{ env.GCP_REGION }} \
+            --model-name=${{ env.MODEL_NAME }} \
+            --saved-model-dir=./retrained_model \
+            --gcs-bucket=${{ env.GCS_BUCKET }} \
+            --description="Retrained with ${{ steps.subset.outputs.subset_id }}"
+
+      - name: Summary
+        run: |
+          echo "✅ Model retraining complete!"
+          echo "📊 Training summary:"
+          cat ./retrained_model/metadata.json
+
+      - name: Upload training metadata as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-metadata-${{ steps.subset.outputs.subset_id }}
+          path: ./retrained_model/metadata.json
+          retention-days: 30
+
+      - name: Notify completion
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Workflow completed successfully!"
+          else
+            echo "❌ Workflow failed!"
+          fi
+
+    outputs:
+      subset_id: ${{ steps.subset.outputs.subset_id }}
+      training_status: ${{ job.status }}
