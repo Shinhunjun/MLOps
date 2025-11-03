@@ -7,6 +7,17 @@ A complete MLOps pipeline for MNIST digit recognition with automated model retra
 - **Frontend (Vercel)**: https://frontend-mh7kjdw4p-shinhunjuns-projects.vercel.app
 - **Backend API (Cloud Run)**: https://mnist-api-762303020827.us-central1.run.app
 
+### Application Screenshot
+
+![MNIST Digit Recognizer](./assets/mnist_predict_screen.png)
+
+The application features:
+- **Interactive Drawing Canvas**: Draw digits (0-9) with your mouse or touch
+- **Real-time Predictions**: Get instant predictions with confidence scores
+- **Top Predictions Display**: See all 10 digits ranked by confidence percentage
+- **Feedback System**: Submit corrections to improve the model
+- **Modern UI**: Clean, gradient-based design with smooth animations
+
 ## Architecture Overview
 
 ```
