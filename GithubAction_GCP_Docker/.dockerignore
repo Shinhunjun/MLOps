@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+
+# Credentials
+*.json
+*credentials*
+*.pem
+*.key
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+.DS_Store?
+
+# Local development
+saved_models/
+scripts/
+*.md
+README.md
+
+# Tests
+tests/
+pytest_cache/
+.coverage
